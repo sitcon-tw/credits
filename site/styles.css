@@ -605,6 +605,17 @@ dialog::backdrop {
   text-align: center;
 }
 
+/* Mobile-only controls — hidden on desktop */
+.more-filters-btn,
+.view-icon-switch {
+  display: none;
+}
+
+/* Filters wrapper — transparent to desktop grid layout */
+.toolbar-filters {
+  display: contents;
+}
+
 @media (max-width: 920px) {
   .site-header {
     grid-template-columns: 1fr;
@@ -644,9 +655,80 @@ dialog::backdrop {
   }
 
   .stats,
-  .toolbar,
   .claim-actions {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+  }
+
+  /* Show mobile-only controls */
+  .more-filters-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+
+  .more-filters-btn[aria-expanded="true"] {
+    border-color: var(--accent);
+    background: rgba(31, 122, 99, 0.08);
+    color: var(--accent-dark);
+  }
+
+  .view-icon-switch {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .view-icon-switch button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    width: 44px;
+    border: 0;
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .view-icon-switch button + button {
+    border-left: 1px solid var(--line);
+  }
+
+  .view-icon-switch button.is-active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Collapsible filters panel */
+  .toolbar-filters {
+    display: none;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .toolbar-filters.is-open {
+    display: grid;
+  }
+
+  /* Desktop text view switch replaced by icon switch on mobile */
+  .view-switch {
+    display: none;
   }
 
   .people-grid {

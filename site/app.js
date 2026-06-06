@@ -48,6 +48,8 @@ const elements = {
   claimSelection: document.querySelector('#claimSelection'),
   claimNotice: document.querySelector('#claimNotice'),
   avatarTemplate: document.querySelector('#avatarTemplate'),
+  moreFiltersBtn: document.querySelector('#moreFiltersBtn'),
+  toolbarFilters: document.querySelector('#toolbarFilters'),
   viewButtons: document.querySelectorAll('[data-view]'),
   sortButtons: document.querySelectorAll('[data-sort]'),
   statPeople: document.querySelector('[data-stat="people"]'),
@@ -91,6 +93,7 @@ async function init() {
   fillStats();
   fillFilters();
   bindEvents();
+  syncViewButtons();
   syncSortButtons();
   render();
   syncStateFromUrl();
@@ -140,12 +143,14 @@ function bindEvents() {
   for (const button of elements.viewButtons) {
     button.addEventListener('click', () => {
       state.view = button.dataset.view;
-      for (const current of elements.viewButtons) {
-        current.classList.toggle('is-active', current === button);
-      }
+      syncViewButtons();
       render();
     });
   }
+  elements.moreFiltersBtn?.addEventListener('click', () => {
+    const isOpen = elements.toolbarFilters.classList.toggle('is-open');
+    elements.moreFiltersBtn.setAttribute('aria-expanded', String(isOpen));
+  });
   for (const button of elements.sortButtons) {
     button.addEventListener('click', () => {
       if (button.dataset.sort === 'shuffle') {
@@ -530,6 +535,12 @@ function syncPageMode() {
   document.title = 'SITCON Credits';
   elements.pageTitle.textContent = '貢獻紀錄索引';
   elements.pageLede.textContent = '探索歷屆工作人員、講者與公開貢獻紀錄。';
+}
+
+function syncViewButtons() {
+  for (const current of elements.viewButtons) {
+    current.classList.toggle('is-active', current.dataset.view === state.view);
+  }
 }
 
 function syncSortButtons() {

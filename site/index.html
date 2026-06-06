@@ -49,32 +49,49 @@
           <span>搜尋</span>
           <input id="searchInput" type="search" autocomplete="off" placeholder="姓名、GitHub、活動、組別">
         </label>
-        <label>
-          <span>年份</span>
-          <select id="yearFilter">
-            <option value="">全部年份</option>
-          </select>
-        </label>
-        <label>
-          <span>活動</span>
-          <select id="seriesFilter">
-            <option value="">全部活動</option>
-          </select>
-        </label>
-        <label>
-          <span>組別</span>
-          <select id="roleFilter">
-            <option value="">全部組別</option>
-          </select>
-        </label>
-        <div class="segmented-control view-switch" role="group" aria-label="檢視模式">
-          <button class="is-active" type="button" data-view="grid">頭像牆</button>
-          <button type="button" data-view="list">列表</button>
+
+        <button class="more-filters-btn" id="moreFiltersBtn" type="button" aria-expanded="false" aria-controls="toolbarFilters">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          篩選
+        </button>
+
+        <div class="view-icon-switch" role="group" aria-label="檢視模式">
+          <button class="is-active" type="button" data-view="grid" aria-label="格狀檢視">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button type="button" data-view="list" aria-label="列表檢視">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><line x1="1" y1="4" x2="15" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
         </div>
-        <div class="segmented-control sort-switch" role="group" aria-label="排序">
-          <button class="is-active" type="button" data-sort="daily">每日輪替</button>
-          <button type="button" data-sort="canonical">資料順序</button>
-          <button type="button" data-sort="shuffle">重新亂序</button>
+
+        <div class="toolbar-filters" id="toolbarFilters">
+          <label>
+            <span>年份</span>
+            <select id="yearFilter">
+              <option value="">全部年份</option>
+            </select>
+          </label>
+          <label>
+            <span>活動</span>
+            <select id="seriesFilter">
+              <option value="">全部活動</option>
+            </select>
+          </label>
+          <label>
+            <span>組別</span>
+            <select id="roleFilter">
+              <option value="">全部組別</option>
+            </select>
+          </label>
+          <div class="segmented-control view-switch" role="group" aria-label="檢視模式">
+            <button class="is-active" type="button" data-view="grid">頭像牆</button>
+            <button type="button" data-view="list">列表</button>
+          </div>
+          <div class="segmented-control sort-switch" role="group" aria-label="排序">
+            <button class="is-active" type="button" data-sort="daily">每日輪替</button>
+            <button type="button" data-sort="canonical">資料順序</button>
+            <button type="button" data-sort="shuffle">重新亂序</button>
+          </div>
         </div>
       </section>
 
