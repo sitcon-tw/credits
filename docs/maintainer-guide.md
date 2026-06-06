@@ -86,4 +86,6 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 
 GitHub Pages 使用 GitHub Actions 作為部署來源；`Deploy GitHub Pages` workflow 會負責匯出 canonical Sheet、驗證資料、建立靜態網站並部署。若 Pages 設定、domain、repository secret 或 Google Workspace 權限異動，請同時檢查 `.github/workflows/pages.yml` 與 [自動化流程](workflows.md) 的描述。
 
+Pages 前端是公開索引與標記流程的原型凍結版。維護者仍應處理部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用等例外；一般前端功能、介面微調、體驗修補或重新設計期待，請導向 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，不要直接在原型上收斂零散 PR。
+
 workflow 檔案存在不等於外部設定都已生效。文件若提到跨 repo commit、profile PR 自動審查、Google Sheets 寫入、branch ruleset 或 GitHub App 權限，應明確區分「repo 內已有 workflow」與「GitHub / Google Workspace 設定已確認」。若未來新增 Forms、public search index、資料 schema 或新的跨 repo 自動化，請先更新 [資料模型與治理](data-model.md) 和 [自動化流程](workflows.md)。

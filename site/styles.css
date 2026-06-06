@@ -91,6 +91,25 @@ h1 {
   color: var(--accent);
 }
 
+.prototype-notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.prototype-notice a {
+  color: var(--accent-dark);
+  font-weight: 700;
+  text-decoration-color: rgba(31, 122, 99, 0.38);
+  text-underline-offset: 4px;
+}
+
+.prototype-notice a:hover {
+  color: var(--accent);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(86px, 1fr));
@@ -630,6 +649,10 @@ dialog::backdrop {
   }
 
   .claim-entry-link {
+    text-align: left;
+  }
+
+  .prototype-notice {
     text-align: left;
   }
 

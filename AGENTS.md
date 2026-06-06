@@ -209,6 +209,7 @@ If a source is outside this repository, do not claim that it has been corrected.
 - `docs/workflows.md` is the reader-facing source for cross-repository GitHub Actions flowcharts and automation boundaries.
 - `docs/maintainer-guide.md` is the reader-facing source for local tools, credentialed operations, and maintainer setup.
 - `AGENTS.md` is the local instruction entrypoint for LLM agents.
+- The GitHub Pages frontend is a frozen prototype for the public index and claim flow. Do not implement general Pages feature work, UX polish, or interface tweaks unless the user explicitly changes this direction. Route frontend expectations, usage scenarios, and redesign ideas to https://github.com/sitcon-tw/credits/issues/2. Exceptions may include deployment failures, data security or privacy risks, visibly wrong public data, or an existing required flow becoming unusable.
 - Keep `AGENTS.md` focused on agent-facing policy, safety boundaries, and routing rules. Do not turn it into the complete command manual as repository tooling grows.
 - Future technical docs should distinguish planned behavior from implemented behavior.
 - If tool-specific operational detail grows beyond short guardrails, move it into dedicated maintainer documentation and link or summarize the boundary here.
