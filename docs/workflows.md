@@ -14,13 +14,13 @@ flowchart TD
   dispatchReview --> review["credits：Review profile PR"]
   review --> exportSheet["匯出 canonical Google Sheet"]
   review --> checkStatus{"同一 head SHA 的必要檢查都成功？"}
-  exportSheet --> checkAppearance{"profile username 已在 appearances.github_username？"}
-  checkStatus -->|是| checkAppearance
+  exportSheet --> claimCheck{"有待更新的 site: 標記網址？"}
+  checkStatus -->|是| claimCheck
   checkStatus -->|否| waitOrSkip["等待或略過自動審查"]
-  checkAppearance -->|是| approveMerge["核准並 squash merge 到 credits-profiles"]
-  checkAppearance -->|否| claimCheck{"PR 有可套用的標記網址？"}
   claimCheck -->|是| confirmCheck["建立 PR comment checkbox 讓維護者確認"]
-  claimCheck -->|否| maintainerComment["留言提醒維護者審查"]
+  claimCheck -->|否| checkAppearance{"profile username 已在 appearances.github_username？"}
+  checkAppearance -->|是| approveMerge["核准並 squash merge 到 credits-profiles"]
+  checkAppearance -->|否| maintainerComment["留言提醒維護者審查"]
   confirmCheck --> applyClaims["維護者勾選確認項目"]
   applyClaims --> review
   approveMerge --> merged["profile JSON merge 到 master"]
@@ -34,11 +34,11 @@ flowchart TD
 - `Profile self-service guard` 在 `pull_request_target` 上檢查 self-service PR 是否只修改 PR 作者自己的單一 `profiles/<github_username>.json`。
 - `Trusted profile review` 只使用 base repository 的可信任程式碼，透過 GitHub API 讀取 PR head 的單一 profile JSON，檢查格式與 PR template 必要確認事項。
 - `Trusted profile review` 通過後 dispatch 到 `sitcon-tw/credits`，由 `Review profile PR` 在主 repo 的 secrets 之下匯出 canonical Google Sheet。
-- `Review profile PR` 會確認同一個 head SHA 的 `Check trusted profile PR` 與 `Check profile PR scope` 都成功，且 profile username 已以裸 GitHub username 形式存在於 `appearances.github_username`。
-- 符合條件時，workflow 會用 `SITCON Credits Assistant` GitHub App 核准並以 squash merge 合併 profile PR。
-- username 尚未出現在 canonical appearances 時，若 PR 或 linked issue 內有可套用的 `site:` 標記網址，workflow 會在 PR 上建立維護者確認 comment，列出將從 `site:<source_person_id>` 改成該 GitHub username 的 canonical rows。
+- `Review profile PR` 會確認同一個 head SHA 的 `Check trusted profile PR` 與 `Check profile PR scope` 都成功，再檢查 PR 或 linked issue 內是否有仍待套用的 `site:` 標記網址。
+- 若標記網址可精準對到 canonical Sheet 中仍使用 `site:<source_person_id>` 的 rows，workflow 會在 PR 上建立維護者確認 comment，列出將改成該 GitHub username 的 canonical rows；這會先阻擋自動合併，即使該 username 已經出現在其他 `appearances.github_username`。
 - 維護者勾選該 comment 內的確認 checkbox 後，`credits-profiles` 會確認勾選者有 repository write、maintain 或 admin 權限，再 dispatch 到 `credits` 寫入 canonical Google Sheet。若 GitHub comment event 沒有觸發，可用 `Apply profile claims` workflow_dispatch fallback 輸入 PR number 與 head SHA。
-- 沒有可套用標記網址、標記與 canonical Sheet 不一致、或 Sheet 中有多筆可疑匹配時，workflow 只會留言提醒維護者人工審查。
+- 沒有待套用標記網址時，workflow 才會以 profile username 是否已經以裸 GitHub username 形式存在於 `appearances.github_username` 判斷是否可自動核准並 squash merge。
+- 標記與 canonical Sheet 不一致、或 Sheet 中有多筆可疑匹配時，workflow 只會留言提醒維護者人工審查。
 
 自動核准與合併只代表 profile PR 符合低風險自助更新條件，而且 username 已經被 canonical data 以裸值參照。它不代表 workflow 建立了新的身份合併，也不代表它處理了歷史資料更正、刪除 profile、rename profile 或隱私政策例外。`site:<source_person_id>` 不會讓 profile PR 自動通過。
 

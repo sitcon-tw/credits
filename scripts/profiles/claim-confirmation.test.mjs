@@ -100,6 +100,56 @@ test('buildProfileClaimPlan creates updates for matching site refs', () => {
   assert(plan.planHash);
 });
 
+test('buildProfileClaimPlan still creates updates when username already appears elsewhere', () => {
+  const payload = exportPayload();
+  payload.sheets.appearances.rows.push({
+    _row: 4,
+    event_id: 'SITCON-2024',
+    display_name_at_event: 'Jadar',
+    role_group_zh: '議程',
+    role_title_zh: '講者',
+    github_username: 'JadarTheObscurity',
+  });
+
+  const plan = buildProfileClaimPlan({
+    pullRequest: pullRequest('https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a'),
+    files: [profileFile('JadarTheObscurity')],
+    exportPayload: payload,
+  });
+
+  assert.equal(plan.status, 'ready');
+  assert.deepEqual(plan.updates.map((update) => update.rowNumber), [2]);
+});
+
+test('buildProfileClaimPlan does not block when claim updates are already applied', () => {
+  const payload = exportPayload();
+  payload.sheets.appearances.rows[0].github_username = 'JadarTheObscurity';
+
+  const plan = buildProfileClaimPlan({
+    pullRequest: pullRequest('https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a'),
+    files: [profileFile('JadarTheObscurity')],
+    exportPayload: payload,
+    acceptAppliedClaims: true,
+  });
+
+  assert.equal(plan.status, 'not_applicable');
+  assert.equal(plan.reason, 'claim-updates-already-applied');
+});
+
+test('buildProfileClaimPlan blocks applied-looking claims without confirmed comment context', () => {
+  const payload = exportPayload();
+  payload.sheets.appearances.rows[0].github_username = 'JadarTheObscurity';
+
+  const plan = buildProfileClaimPlan({
+    pullRequest: pullRequest('https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a'),
+    files: [profileFile('JadarTheObscurity')],
+    exportPayload: payload,
+  });
+
+  assert.equal(plan.status, 'blocked');
+  assert.equal(plan.reason, 'claim-token-mismatch');
+});
+
 test('buildProfileClaimPlan updates every row for a repeated event site ref', () => {
   const payload = exportPayload();
   payload.sheets.appearances.rows.push({

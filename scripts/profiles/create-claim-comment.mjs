@@ -1,9 +1,11 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 import { githubPaginate, githubRequest } from '../lib/github-api.mjs';
 import {
   CLAIM_CHECK_MARKER,
+  CLAIM_COMMENT_APPLY_MARKER,
+  CLAIM_COMMENT_METADATA_MARKER,
   buildProfileClaimPlan,
   formatClaimCommentBody,
 } from './claim-confirmation.mjs';
@@ -28,19 +30,27 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return;
   }
 
-  const [files, sourceIssue, exportPayload] = await Promise.all([
+  const [files, sourceIssue, exportPayload, comments] = await Promise.all([
     githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}/files?per_page=100`),
     fetchLinkedIssue(token, options, pullRequest),
     readJson(options.exportPath),
+    githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/issues/${options.pullNumber}/comments?per_page=100`),
   ]);
-  const plan = buildProfileClaimPlan({ pullRequest, files, sourceIssue, exportPayload });
+  const plan = buildProfileClaimPlan({
+    pullRequest,
+    files,
+    sourceIssue,
+    exportPayload,
+    acceptAppliedClaims: hasConfirmedClaimComment(comments, options),
+  });
+  await writeClaimPlan(options, plan);
   if (plan.status === 'not_applicable') {
+    if (plan.reason === 'claim-updates-already-applied') {
+      const deleted = await deleteClaimComments(token, options);
+      console.log(`Profile claim confirmation skipped: ${plan.reason}; deleted ${deleted} stale comment(s).`);
+      return;
+    }
     console.log(`Profile claim confirmation skipped: ${plan.reason}.`);
-    return;
-  }
-  if (profileUsernameExists(exportPayload, plan.username)) {
-    const deleted = await deleteClaimComments(token, options);
-    console.log(`Profile claim confirmation skipped: username-present-in-appearances; deleted ${deleted} stale comment(s).`);
     return;
   }
 
@@ -89,6 +99,11 @@ export function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--plan-output') {
+      options.planOutputPath = readNextArg(argv, index, arg);
+      index += 1;
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -118,21 +133,51 @@ export async function deleteClaimComments(token, options) {
   return matching.length;
 }
 
-export function profileUsernameExists(exportPayload, username) {
-  const normalized = String(username ?? '').trim().toLowerCase();
-  if (!normalized) {
-    return false;
+async function writeClaimPlan(options, plan) {
+  if (!options.planOutputPath) {
+    return;
   }
-  const rows = exportPayload?.sheets?.appearances?.rows;
-  if (!Array.isArray(rows)) {
-    return false;
-  }
-  return rows.some((row) => String(row.github_username ?? '').trim().toLowerCase() === normalized);
+  await writeFile(options.planOutputPath, `${JSON.stringify(plan, null, 2)}\n`);
 }
 
 export function isAssistantClaimComment(comment, assistantLogin = DEFAULT_ASSISTANT_LOGIN) {
   return comment.body?.includes(CLAIM_CHECK_MARKER) &&
     assistantCommentLogins(assistantLogin).has(comment.user?.login);
+}
+
+export function hasConfirmedClaimComment(comments, options) {
+  return (comments ?? []).some((comment) => {
+    if (!isAssistantClaimComment(comment, options.assistantLogin)) {
+      return false;
+    }
+    if (!isApplyCheckboxChecked(comment.body)) {
+      return false;
+    }
+    const metadata = parseClaimMetadata(comment.body);
+    return metadata?.pull_number === options.pullNumber &&
+      metadata?.head_sha === options.headSha;
+  });
+}
+
+export function isApplyCheckboxChecked(body) {
+  return new RegExp(`-\\s*\\[[xX]\\][^\\n]*${escapeRegExp(CLAIM_COMMENT_APPLY_MARKER)}`).test(String(body ?? ''));
+}
+
+export function parseClaimMetadata(body) {
+  const pattern = new RegExp(`<!--\\s*${CLAIM_COMMENT_METADATA_MARKER}:\\s*([\\s\\S]*?)\\s*-->`);
+  const match = String(body ?? '').match(pattern);
+  if (!match) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(match[1]);
+    return {
+      pull_number: Number(parsed.pull_number),
+      head_sha: String(parsed.head_sha ?? ''),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function assistantCommentLogins(assistantLogin = DEFAULT_ASSISTANT_LOGIN) {
@@ -167,6 +212,10 @@ function readNextArg(argv, index, name) {
     throw new Error(`${name} requires a value.`);
   }
   return value;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function readJson(filePath) {

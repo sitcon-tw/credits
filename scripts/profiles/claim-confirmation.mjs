@@ -12,7 +12,7 @@ const GITHUB_USERNAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$
 const SITE_PROFILE_REF_PATTERN = /^site:[a-z0-9](?:[a-z0-9-]{0,128}[a-z0-9])?$/;
 const CLAIM_URL_PATTERN = /https?:\/\/[^\s<>)"]+/g;
 
-export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, exportPayload }) {
+export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, exportPayload, acceptAppliedClaims = false }) {
   const username = collectChangedProfileUsernames(files)[0] ?? '';
   if (!GITHUB_USERNAME_PATTERN.test(username) || collectChangedProfileUsernames(files).length !== 1) {
     return {
@@ -55,10 +55,16 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
       String(row.github_username ?? '').trim() === token.profileRef
     ));
     if (matches.length === 0) {
-      issues.push({
-        token: token.raw,
-        message: '找不到目前仍使用這個 site: reference 的 canonical appearance',
-      });
+      const appliedMatches = acceptAppliedClaims ? appearances.filter((row) => (
+        String(row.event_id ?? '').trim() === token.eventId &&
+        String(row.github_username ?? '').trim().toLowerCase() === username.toLowerCase()
+      )) : [];
+      if (appliedMatches.length === 0) {
+        issues.push({
+          token: token.raw,
+          message: '找不到目前仍使用這個 site: reference 的 canonical appearance',
+        });
+      }
       continue;
     }
 
@@ -92,7 +98,7 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
   if (updates.length === 0) {
     return {
       status: 'not_applicable',
-      reason: 'no-matching-claim-updates',
+      reason: tokens.length > 0 ? 'claim-updates-already-applied' : 'no-matching-claim-updates',
       username,
       tokens,
       updates,

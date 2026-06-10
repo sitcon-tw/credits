@@ -67,7 +67,6 @@ jobs:
           permission-pull-requests: write
 
       - name: Create profile claim confirmation comment
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
         run: >-
@@ -78,6 +77,7 @@ jobs:
           --head-sha "${{ github.event.client_payload.head_sha }}"
           --export "$RUNNER_TEMP/sheets-export/export.json"
           --assistant-login "${{ steps.credits-assistant-token.outputs.app-slug }}"
+          --plan-output "$RUNNER_TEMP/profile-claim-plan.json"
 
       - name: Approve or comment on profile PR
         working-directory: tmp/credits-profiles
@@ -92,5 +92,6 @@ jobs:
           --pull-number "${{ github.event.client_payload.pull_number }}"
           --head-sha "${{ github.event.client_payload.head_sha }}"
           --export "$RUNNER_TEMP/sheets-export/export.json"
+          --claim-plan "$RUNNER_TEMP/profile-claim-plan.json"
           --auto-merge
           --merge-method "squash"
