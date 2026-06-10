@@ -21,6 +21,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const issueNumber = extractLinkedIssueNumber(pullRequest.body ?? '');
   if (issueNumber) {
     await upsertProfilePublishedComment(token, options, issueNumber, body);
+    await closeProfileRequestIssue(token, options, issueNumber);
   }
   console.log(`Profile published comment updated for PR #${options.pullNumber}.`);
 }
@@ -84,8 +85,15 @@ export async function upsertProfilePublishedComment(token, options, issueNumber,
   await githubRequest(token, `POST /repos/${options.owner}/${options.repo}/issues/${issueNumber}/comments`, { body });
 }
 
+export async function closeProfileRequestIssue(token, options, issueNumber) {
+  await githubRequest(token, `PATCH /repos/${options.owner}/${options.repo}/issues/${issueNumber}`, {
+    state: 'closed',
+    state_reason: 'completed',
+  });
+}
+
 export function extractLinkedIssueNumber(body) {
-  const match = body?.match(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i);
+  const match = body?.match(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)\b/i);
   return match ? Number(match[1]) : null;
 }
 

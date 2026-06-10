@@ -140,7 +140,7 @@ async function fetchLinkedIssue(token, options, pullRequest) {
 }
 
 export function extractLinkedIssueNumber(body) {
-  const match = String(body ?? '').match(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i);
+  const match = String(body ?? '').match(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)\b/i);
   return match ? Number(match[1]) : null;
 }
 

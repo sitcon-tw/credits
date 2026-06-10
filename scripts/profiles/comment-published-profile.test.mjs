@@ -32,9 +32,10 @@ test('formatProfilePublishedComment points to the deployed Credits profile ancho
   assert.match(comment, /https:\/\/sitcon\.org\/credits\/#person=JadarTheObscurity/);
 });
 
-test('extractLinkedIssueNumber reads closing keywords from PR body', () => {
+test('extractLinkedIssueNumber reads closing and reference keywords from PR body', () => {
   assert.equal(extractLinkedIssueNumber('Closes #69'), 69);
   assert.equal(extractLinkedIssueNumber('fixes #70'), 70);
+  assert.equal(extractLinkedIssueNumber('Refs #71'), 71);
   assert.equal(extractLinkedIssueNumber('No linked issue'), null);
 });
 

@@ -29,7 +29,8 @@ test('claimCheckExternalId includes pull number, head SHA, and plan hash', () =>
   assert.equal(claimCheckExternalId(58, 'abc123', 'hash'), 'profile-claims:58:abc123:hash');
 });
 
-test('extractLinkedIssueNumber reads closing keywords', () => {
+test('extractLinkedIssueNumber reads closing and reference keywords', () => {
   assert.equal(extractLinkedIssueNumber('Closes #57'), 57);
+  assert.equal(extractLinkedIssueNumber('Refs #58'), 58);
   assert.equal(extractLinkedIssueNumber('No issue'), null);
 });
