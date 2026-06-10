@@ -15,7 +15,13 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return;
   }
 
-  await upsertProfilePublishedComment(token, options, formatProfilePublishedComment(options.username));
+  const body = formatProfilePublishedComment(options.username);
+  await upsertProfilePublishedComment(token, options, options.pullNumber, body);
+  const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`);
+  const issueNumber = extractLinkedIssueNumber(pullRequest.body ?? '');
+  if (issueNumber) {
+    await upsertProfilePublishedComment(token, options, issueNumber, body);
+  }
   console.log(`Profile published comment updated for PR #${options.pullNumber}.`);
 }
 
@@ -68,14 +74,19 @@ export function formatProfilePublishedComment(username) {
   ].join('\n');
 }
 
-export async function upsertProfilePublishedComment(token, options, body) {
-  const comments = await githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/issues/${options.pullNumber}/comments?per_page=100`);
+export async function upsertProfilePublishedComment(token, options, issueNumber, body) {
+  const comments = await githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/issues/${issueNumber}/comments?per_page=100`);
   const existing = comments.find((comment) => isAssistantProfilePublishedComment(comment, options.assistantLogin));
   if (existing) {
     await githubRequest(token, `PATCH /repos/${options.owner}/${options.repo}/issues/comments/${existing.id}`, { body });
     return;
   }
-  await githubRequest(token, `POST /repos/${options.owner}/${options.repo}/issues/${options.pullNumber}/comments`, { body });
+  await githubRequest(token, `POST /repos/${options.owner}/${options.repo}/issues/${issueNumber}/comments`, { body });
+}
+
+export function extractLinkedIssueNumber(body) {
+  const match = body?.match(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i);
+  return match ? Number(match[1]) : null;
 }
 
 export function isAssistantProfilePublishedComment(comment, assistantLogin = '') {

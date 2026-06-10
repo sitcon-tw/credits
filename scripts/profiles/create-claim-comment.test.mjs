@@ -3,9 +3,11 @@ import { test } from 'node:test';
 
 import {
   assistantCommentLogins,
+  formatClaimWaitingIssueComment,
   hasConfirmedClaimComment,
   isApplyCheckboxChecked,
   isAssistantClaimComment,
+  isAssistantClaimWaitingIssueComment,
   parseArgs,
   parseClaimMetadata,
 } from './create-claim-comment.mjs';
@@ -108,4 +110,35 @@ test('hasConfirmedClaimComment requires assistant author, checked box, and match
       body: confirmedClaimBody({ headSha: 'old-head' }),
     },
   ], options), false);
+});
+
+test('formatClaimWaitingIssueComment tells issue author what is pending', () => {
+  const comment = formatClaimWaitingIssueComment({
+    pullNumber: 73,
+    username: 'kevin0216',
+    updates: [{ rowNumber: 2023 }, { rowNumber: 2081 }],
+  });
+
+  assert.match(comment, /sitcon-credits-profile-claim-waiting/);
+  assert.match(comment, /等待維護者確認/);
+  assert.match(comment, /2 筆/);
+  assert.match(comment, /PR #73/);
+  assert.match(comment, /夥伴協助確認/);
+});
+
+test('isAssistantClaimWaitingIssueComment ignores user-authored marker comments', () => {
+  const body = formatClaimWaitingIssueComment({
+    pullNumber: 73,
+    username: 'kevin0216',
+    updates: [],
+  });
+
+  assert.equal(isAssistantClaimWaitingIssueComment({
+    user: { login: 'denny0223' },
+    body,
+  }, 'sitcon-credits'), false);
+  assert.equal(isAssistantClaimWaitingIssueComment({
+    user: { login: 'sitcon-credits[bot]' },
+    body,
+  }, 'sitcon-credits'), true);
 });

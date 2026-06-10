@@ -79,12 +79,12 @@ flowchart TD
   build --> artifact["上傳 Pages artifact"]
   artifact --> deploy["部署 GitHub Pages"]
   deploy --> publishedComment{"profile PR payload 存在？"}
-  publishedComment -->|是| comment["留言告知 PR 作者可查看 #person 頁面"]
+  publishedComment -->|是| comment["留言告知 PR 與 linked issue 可查看 #person 頁面"]
 ```
 
 `Deploy GitHub Pages` 會在 push 到 `master`、收到 `credits-profiles` 的 `rebuild-pages-from-profiles` dispatch，或手動觸發時執行。它需要 `GOOGLE_SERVICE_ACCOUNT_JSON` repository secret 讀取 canonical Sheet，並從 `credits-profiles` 讀取 contributor profile 與 `site-profiles` 顯示資料。workflow 會產生 `dist/`、上傳 Pages artifact，並交給 GitHub Pages 部署；repository 的 Pages build type 是 GitHub Actions。
 
-若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現。
+若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言；若 PR body linked 到 profile request issue，也會回到原 issue 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現。
 
 Pages 網頁預設只提供公開索引查詢。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](http://sitcon.org/credits/?claim=1)；頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
 

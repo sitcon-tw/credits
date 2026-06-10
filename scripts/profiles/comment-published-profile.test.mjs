@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  extractLinkedIssueNumber,
   formatProfilePublishedComment,
   isAssistantProfilePublishedComment,
   parseArgs,
@@ -29,6 +30,12 @@ test('formatProfilePublishedComment points to the deployed Credits profile ancho
   assert.match(comment, /sitcon-credits-profile-published/);
   assert.match(comment, /已合併並部署/);
   assert.match(comment, /https:\/\/sitcon\.org\/credits\/#person=JadarTheObscurity/);
+});
+
+test('extractLinkedIssueNumber reads closing keywords from PR body', () => {
+  assert.equal(extractLinkedIssueNumber('Closes #69'), 69);
+  assert.equal(extractLinkedIssueNumber('fixes #70'), 70);
+  assert.equal(extractLinkedIssueNumber('No linked issue'), null);
 });
 
 test('isAssistantProfilePublishedComment ignores user marker comments', () => {
