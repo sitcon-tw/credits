@@ -154,11 +154,11 @@ export function formatClaimWaitingIssueComment({ pullNumber, username, updates }
   const updateCount = updates?.length ?? 0;
   return [
     CLAIM_ISSUE_WAITING_MARKER,
-    `\`${username}\` 的 profile PR #${pullNumber} 已通過 profile 格式檢查，目前正在等待維護者確認歷史貢獻紀錄連結。`,
+    `\`${username}\` 的 profile 資料格式已通過；目前不需要你修改資料。`,
     '',
-    `系統在標記網址中找到 ${updateCount} 筆仍需要從活動網站來源 \`site:\` reference 更新到你的 GitHub username 的紀錄。這一步需要維護者在 PR 內確認後，才會更新 SITCON Credits 的 canonical Google Sheets。`,
+    `因為你提供了貢獻紀錄標記網址，接下來會由維護者確認 ${updateCount} 筆公開活動紀錄是否可以連到你的 GitHub 帳號。確認完成後，系統才會更新 SITCON Credits 的主資料。`,
     '',
-    `你可以到 PR #${pullNumber} 查看目前狀態。若等候很久都沒有回應，可以找熟悉 SITCON Credits 或這次活動紀錄的夥伴協助確認。`,
+    `你可以到 PR #${pullNumber} 查看完整檢查紀錄。若等候很久都沒有回應，可以找熟悉 SITCON Credits 或這次活動紀錄的夥伴協助確認。`,
   ].join('\n');
 }
 

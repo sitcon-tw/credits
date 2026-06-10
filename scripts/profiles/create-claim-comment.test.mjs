@@ -120,7 +120,9 @@ test('formatClaimWaitingIssueComment tells issue author what is pending', () => 
   });
 
   assert.match(comment, /sitcon-credits-profile-claim-waiting/);
-  assert.match(comment, /等待維護者確認/);
+  assert.match(comment, /不需要你修改資料/);
+  assert.match(comment, /由維護者確認/);
+  assert.match(comment, /公開活動紀錄/);
   assert.match(comment, /2 筆/);
   assert.match(comment, /PR #73/);
   assert.match(comment, /夥伴協助確認/);
