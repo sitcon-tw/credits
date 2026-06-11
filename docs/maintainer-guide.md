@@ -59,7 +59,7 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 | `Sync people helper` | `credits-profiles` repository dispatch、手動觸發 | 將 `credits-profiles` 的 profile username 與 display name 同步到 Google Sheets 的 `people` helper sheet。 |
 | `Review profile PR` | `credits-profiles` repository dispatch | 匯出 canonical Google Sheet，確認 profile PR 的 username 是否已出現在 `appearances.github_username`，符合條件時核准並 squash merge，不符合時留言提醒維護者。 |
 | `Apply profile claims` | `credits-profiles` PR comment checkbox dispatch、手動觸發 | 維護者確認 PR 內的標記網址後，將仍符合的 `site:` appearances 改成該 profile PR 的裸 GitHub username，驗證後重跑 profile PR review。 |
-| `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、建立 `dist/`，部署到 GitHub Pages，並在 profile PR 觸發的部署成功後留言告知公開頁面連結。 |
+| `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、建立 `dist/`，部署到 GitHub Pages；profile PR 觸發的部署成功後，回到該 PR 與 linked profile request issue 留言告知公開頁面連結，並關閉原 issue。 |
 
 `CI` 不讀取 service account credentials、不連線 Google APIs，也不匯出 canonical Sheet。`Export Sheets data`、`Sync people helper`、`Review profile PR` 和 `Deploy GitHub Pages` 需要維護者先在 GitHub repository secrets 設定 `GOOGLE_SERVICE_ACCOUNT_JSON`。
 
