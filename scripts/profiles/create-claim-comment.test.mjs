@@ -55,9 +55,9 @@ test('isAssistantClaimComment accepts assistant login variants', () => {
     body: claimBody,
   }), true);
   assert.equal(isAssistantClaimComment({
-    user: { login: 'sitcon-credits-assistant[bot]' },
+    user: { login: 'configured-app[bot]' },
     body: claimBody,
-  }, 'sitcon-credits-assistant'), true);
+  }, 'configured-app'), true);
 });
 
 test('assistantCommentLogins includes app slug and bot suffix forms', () => {

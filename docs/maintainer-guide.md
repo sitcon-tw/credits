@@ -68,7 +68,7 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 - repository variable：`SITCON_CREDITS_ASSISTANT_APP_CLIENT_ID`
 - repository secret：`SITCON_CREDITS_ASSISTANT_APP_PRIVATE_KEY`
 
-這個 GitHub App 應安裝在 `sitcon-tw/credits` 與 `sitcon-tw/credits-profiles`，不應使用維護者個人 token。workflow 產生的 commit author 會固定為 `SITCON Credits Assistant`，committer 會使用 `sitcon-credits-assistant[bot]` 的 noreply email。
+這個 GitHub App 應安裝在 `sitcon-tw/credits` 與 `sitcon-tw/credits-profiles`，不應使用維護者個人 token。workflow 產生的 commit author 會固定為 `SITCON Credits Assistant`，committer 會使用 `sitcon-credits[bot]` 的 noreply email。
 
 `Review profile PR` 若看到 PR 內有 `?claim=1&claims=...` 標記網址，且標記可精準對到 canonical Sheet 中仍存在的 `site:` references，會建立維護者確認 comment。維護者勾選 comment 內的確認 checkbox，代表確認這些歷史 appearances 可連到該 PR 的 GitHub username；系統會重新匯出 Sheet、確認值仍完全符合、才寫回 `appearances.github_username`。若 GitHub 沒有觸發 comment event，可手動執行 `Apply profile claims` workflow，輸入 PR number 與 head SHA 使用同一套驗證。
 

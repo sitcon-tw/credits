@@ -218,7 +218,6 @@ export function assistantCommentLogins(assistantLogin = DEFAULT_ASSISTANT_LOGIN)
   const logins = new Set([
     DEFAULT_ASSISTANT_LOGIN,
     `${DEFAULT_ASSISTANT_LOGIN}[bot]`,
-    'sitcon-credits-assistant[bot]',
   ]);
   const bareLogin = String(assistantLogin ?? '').replace(/\[bot\]$/, '');
   for (const login of [assistantLogin, bareLogin]) {

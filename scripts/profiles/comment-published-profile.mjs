@@ -106,7 +106,6 @@ export function isAssistantProfilePublishedComment(comment, assistantLogin = '')
     assistantLogin,
     assistantLogin ? `${assistantLogin}[bot]` : '',
     assistantLogin ? `app/${assistantLogin}` : '',
-    'sitcon-credits-assistant[bot]',
     'sitcon-credits[bot]',
   ].filter(Boolean));
   return allowed.has(login);
