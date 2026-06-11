@@ -14,7 +14,7 @@ SITCON Credits（SITCON 貢獻紀錄）整理 SITCON 歷年公開的工作人員
 | 了解兩個 repo 的 GitHub Actions 如何互相觸發 | [自動化流程](docs/workflows.md) |
 | 維護 Google Sheets、匯出資料或設定 GitHub App | [維護者指南](docs/maintainer-guide.md) |
 | 新增或更新自己的公開 profile | [credits-profiles](https://github.com/sitcon-tw/credits-profiles) |
-| 標記可能是自己的歷史貢獻紀錄 | [標記我的貢獻紀錄](http://sitcon.org/credits/?claim=1) |
+| 標記可能是自己的歷史貢獻紀錄 | [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1) |
 | 提供 Pages 前端期待、想像或使用情境 | [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2) |
 | 查看 canonical Google Sheet | [SITCON Credits Google Sheet](https://docs.google.com/spreadsheets/d/1L2drpIE2ocZF3Stba9X0DnLGmYi_igeGWUhaQB_evsQ/edit?gid=0#gid=0) |
 
@@ -28,7 +28,7 @@ pnpm site:build -- --export tmp/sheets-export/export.json
 
 這只會建立本機靜態 `dist/` 產物，不會讀取 Google credentials，也不會部署 GitHub Pages。
 
-Pages 網頁預設是公開貢獻紀錄查詢介面，不顯示標記工具。過去參與 SITCON 相關活動的夥伴若要請維護者確認哪些項目可能是在記錄自己，可以打開 [標記我的貢獻紀錄](http://sitcon.org/credits/?claim=1)，選取項目後分享該頁網址。這個流程只收集本人意願與審核線索，不會自動修改 canonical Sheet，也不會自動完成身份連結。
+Pages 網頁預設是公開貢獻紀錄查詢介面，不顯示標記工具。過去參與 SITCON 相關活動的夥伴若要請維護者確認哪些項目可能是在記錄自己，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)，選取項目後分享該頁網址。這個流程只收集本人意願與審核線索，不會自動修改 canonical Sheet，也不會自動完成身份連結。
 
 Pages 前端是公開索引與標記流程的原型凍結版，會繼續作為公開輸出使用，但不再接受零散功能開發、介面微調或體驗修補 PR。若想提供前端期待、想像、問題或使用情境，請集中留言到 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，作為後續訪談、設計討論與規劃輸入。
 
