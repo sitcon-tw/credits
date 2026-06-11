@@ -29,12 +29,10 @@ jobs:
 
       - name: Create credits assistant token
         id: credits-assistant-token
-        uses: actions/create-github-app-token@v3
+        uses: ./.github/actions/credits-assistant-token
         with:
           client-id: ${{ vars.SITCON_CREDITS_ASSISTANT_APP_CLIENT_ID }}
           private-key: ${{ secrets.SITCON_CREDITS_ASSISTANT_APP_PRIVATE_KEY }}
-          owner: sitcon-tw
-          repositories: credits-profiles
           permission-contents: write
 
       - name: Check out profiles repository

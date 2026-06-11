@@ -1,0 +1,54 @@
+name: Create credits assistant token
+description: Create a SITCON Credits Assistant GitHub App installation token for sitcon-tw repositories. Request only the permissions each workflow needs; empty permission inputs are not requested.
+
+inputs:
+  client-id:
+    description: SITCON Credits Assistant GitHub App client id, usually from the SITCON_CREDITS_ASSISTANT_APP_CLIENT_ID repository variable.
+    required: true
+  private-key:
+    description: SITCON Credits Assistant GitHub App private key, usually from the SITCON_CREDITS_ASSISTANT_APP_PRIVATE_KEY repository secret.
+    required: true
+  repositories:
+    description: Comma or newline-separated repositories the token may access.
+    required: false
+    default: credits-profiles
+  permission-checks:
+    description: Checks permission to request, for example write.
+    required: false
+    default: ''
+  permission-contents:
+    description: Contents permission to request, for example write.
+    required: false
+    default: ''
+  permission-issues:
+    description: Issues permission to request, for example write.
+    required: false
+    default: ''
+  permission-pull-requests:
+    description: Pull requests permission to request, for example write.
+    required: false
+    default: ''
+
+outputs:
+  token:
+    description: GitHub App installation token.
+    value: ${{ steps.token.outputs.token }}
+  app-slug:
+    description: GitHub App slug.
+    value: ${{ steps.token.outputs.app-slug }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create installation token
+      id: token
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ inputs.client-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: sitcon-tw
+        repositories: ${{ inputs.repositories }}
+        permission-checks: ${{ inputs.permission-checks }}
+        permission-contents: ${{ inputs.permission-contents }}
+        permission-issues: ${{ inputs.permission-issues }}
+        permission-pull-requests: ${{ inputs.permission-pull-requests }}
