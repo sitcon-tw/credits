@@ -16,32 +16,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.18.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Set up repository tools
+        uses: ./.github/actions/setup-tools
 
       - name: Write Google service account credentials
-        env:
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "GOOGLE_SERVICE_ACCOUNT_JSON repository secret is required." >&2
-            exit 1
-          fi
-          credentials_path="$RUNNER_TEMP/google-service-account.json"
-          printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > "$credentials_path"
-          chmod 600 "$credentials_path"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$credentials_path" >> "$GITHUB_ENV"
+        uses: ./.github/actions/google-credentials
+        with:
+          service-account-json: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
       - name: Export canonical Sheet data
         run: pnpm sheets:export
@@ -79,7 +60,6 @@ jobs:
       - name: Validate generated profiles
         working-directory: tmp/credits-profiles
         run: |
-          corepack enable
           pnpm install --frozen-lockfile
           pnpm profiles:validate
 
