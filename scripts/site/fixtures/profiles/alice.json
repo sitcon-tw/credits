@@ -1,0 +1,13 @@
+{
+  "display_name": "Alice Profile",
+  "bio": "Fixture contributor profile for CI smoke builds.",
+  "avatar_url": "https://example.test/alice.jpg",
+  "public_email": "",
+  "links": [
+    {
+      "type": "website",
+      "label": "Example",
+      "url": "https://example.test/alice"
+    }
+  ]
+}

@@ -31,3 +31,11 @@ jobs:
 
       - name: Check Sheets export plan
         run: pnpm sheets:export:dry-run
+
+      - name: Smoke build static site
+        run: >-
+          pnpm site:build --
+          --export scripts/site/fixtures/export.json
+          --profiles-dir scripts/site/fixtures/profiles
+          --site-profiles-dir scripts/site/fixtures/site-profiles
+          --output-dir "$RUNNER_TEMP/site-dist"

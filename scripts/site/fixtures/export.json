@@ -1,0 +1,87 @@
+{
+  "exportedAt": "2026-01-01T00:00:00.000Z",
+  "sheets": {
+    "events": {
+      "rows": [
+        {
+          "event_id": "EVENT-A",
+          "event_series": "Fixture Series",
+          "event_name_zh": "測試活動 A",
+          "event_name_en": "Fixture Event A",
+          "event_year": "2025",
+          "official_site_url": "https://example.test/a",
+          "staff_source_url": "https://example.test/a/staff",
+          "speaker_source_url": "",
+          "notes": ""
+        },
+        {
+          "event_id": "EVENT-B",
+          "event_series": "Fixture Series",
+          "event_name_zh": "測試活動 B",
+          "event_name_en": "",
+          "event_year": "2026",
+          "official_site_url": "https://example.test/b",
+          "staff_source_url": "",
+          "speaker_source_url": "",
+          "notes": ""
+        }
+      ]
+    },
+    "people": {
+      "rows": [
+        {
+          "github_username": "alice",
+          "display_name": "Alice Helper"
+        }
+      ]
+    },
+    "appearances": {
+      "rows": [
+        {
+          "event_id": "EVENT-A",
+          "role_group_zh": "議程組",
+          "role_group_en": "",
+          "role_title_zh": "組員",
+          "role_title_en": "",
+          "display_name_at_event": "Alice A",
+          "github_username": "alice",
+          "source_url_override": "",
+          "notes": ""
+        },
+        {
+          "event_id": "EVENT-B",
+          "role_group_zh": "網站組",
+          "role_group_en": "",
+          "role_title_zh": "組長",
+          "role_title_en": "",
+          "display_name_at_event": "Alice B",
+          "github_username": "alice",
+          "source_url_override": "",
+          "notes": ""
+        },
+        {
+          "event_id": "EVENT-B",
+          "role_group_zh": "紀錄組",
+          "role_group_en": "",
+          "role_title_zh": "組員",
+          "role_title_en": "",
+          "display_name_at_event": "Site Person",
+          "github_username": "site:source-1",
+          "source_url_override": "",
+          "notes": ""
+        },
+        {
+          "event_id": "EVENT-B",
+          "role_group_zh": "紀錄組",
+          "role_group_en": "",
+          "role_title_zh": "組員",
+          "role_title_en": "",
+          "display_name_at_event": "Fallback Person",
+          "github_username": "",
+          "source_url_override": "",
+          "notes": ""
+        }
+      ]
+    }
+  }
+}
