@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: canonical-data-write
+  cancel-in-progress: false
+
 jobs:
   export:
     name: Export and validate canonical data
