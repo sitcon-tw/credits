@@ -76,18 +76,21 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
+  comment:
+    name: Comment on published profile PR
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
+    timeout-minutes: 10
+
+    steps:
       - name: Check out repository
-        if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
         uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
+      - name: Set up repository tools
+        uses: ./.github/actions/setup-tools
 
       - name: Create credits assistant token
-        if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
         id: credits-assistant-token
         uses: ./.github/actions/credits-assistant-token
         with:
@@ -97,7 +100,6 @@ jobs:
           permission-pull-requests: write
 
       - name: Comment on published profile PR
-        if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
         env:
           GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
         run: >-
