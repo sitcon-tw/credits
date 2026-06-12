@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   assistantCommentLogins,
+  formatSkippedClaimPlan,
   formatClaimWaitingIssueComment,
   hasConfirmedClaimComment,
   isApplyCheckboxChecked,
@@ -39,6 +40,40 @@ test('parseArgs reads claim comment options', () => {
     exportPath: 'tmp/export.json',
     assistantLogin: 'sitcon-credits',
     planOutputPath: 'tmp/claim-plan.json',
+  });
+});
+
+test('formatSkippedClaimPlan writes a non-blocking stale PR claim plan', () => {
+  assert.deepEqual(formatSkippedClaimPlan({
+    reason: 'stale-pr-head',
+    pullRequest: {
+      state: 'open',
+      head: { sha: 'new-head' },
+    },
+  }), {
+    status: 'not_applicable',
+    reason: 'stale-pr-head',
+    username: '',
+    updates: [],
+    pullRequestState: 'open',
+    pullRequestHeadSha: 'new-head',
+  });
+});
+
+test('formatSkippedClaimPlan writes a non-blocking closed PR claim plan', () => {
+  assert.deepEqual(formatSkippedClaimPlan({
+    reason: 'pull-request-not-open',
+    pullRequest: {
+      state: 'closed',
+      head: { sha: 'old-head' },
+    },
+  }), {
+    status: 'not_applicable',
+    reason: 'pull-request-not-open',
+    username: '',
+    updates: [],
+    pullRequestState: 'closed',
+    pullRequestHeadSha: 'old-head',
   });
 });
 

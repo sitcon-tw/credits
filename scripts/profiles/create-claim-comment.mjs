@@ -23,10 +23,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`);
   if (pullRequest.state !== 'open') {
+    await writeClaimPlan(options, formatSkippedClaimPlan({
+      reason: 'pull-request-not-open',
+      pullRequest,
+    }));
     console.log(`Profile claim confirmation skipped: PR #${options.pullNumber} is ${pullRequest.state}.`);
     return;
   }
   if (pullRequest.head?.sha !== options.headSha) {
+    await writeClaimPlan(options, formatSkippedClaimPlan({
+      reason: 'stale-pr-head',
+      pullRequest,
+    }));
     console.log('Profile claim confirmation skipped: stale-pr-head.');
     return;
   }
@@ -165,6 +173,17 @@ export function formatClaimWaitingIssueComment({ pullNumber, username, updates }
 export function isAssistantClaimWaitingIssueComment(comment, assistantLogin = DEFAULT_ASSISTANT_LOGIN) {
   return comment.body?.includes(CLAIM_ISSUE_WAITING_MARKER) &&
     assistantCommentLogins(assistantLogin).has(comment.user?.login);
+}
+
+export function formatSkippedClaimPlan({ reason, pullRequest }) {
+  return {
+    status: 'not_applicable',
+    reason,
+    username: '',
+    updates: [],
+    pullRequestState: pullRequest?.state ?? null,
+    pullRequestHeadSha: pullRequest?.head?.sha ?? null,
+  };
 }
 
 async function writeClaimPlan(options, plan) {
