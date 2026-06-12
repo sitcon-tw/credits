@@ -52,6 +52,7 @@ Pages 前端是公開索引與標記流程的原型凍結版，會繼續作為�
 - 手動觸發的 `Export Sheets data` workflow，用 repository secret 匯出 canonical Google Sheet、驗證資料，並用 `SITCON Credits Assistant` GitHub App 直接 commit 缺少的空白 profile template 到 `credits-profiles`。
 - `Sync people helper` workflow，可由 `credits-profiles` dispatch，將 profile repo 中的 username 與 display name 同步到 Google Sheets 的 `people` helper sheet。
 - `Review profile PR` workflow，可由 `credits-profiles` dispatch，根據 canonical `appearances.github_username` 核准、合併或留言處理符合條件的自助 profile PR。
+- `Review profile claim issue` 與 `Apply profile claims` workflows，可處理 profile 欄位沒有變更但本人提供 `site:` 標記網址、需要維護者確認後寫回 canonical Sheet 的 claim-only 情境。
 - `Deploy GitHub Pages` workflow，從 canonical Sheet 與 `credits-profiles` 建置並部署公開索引頁；`credits-profiles` 有新的 profile merge 時也會 dispatch 重新建置。
 
 GitHub Pages 使用 GitHub Actions workflow 部署。其他需要跨 repo 寫入、留言、審查或合併的 automation，仍取決於 repository secrets、variables、Google Workspace 權限、`SITCON Credits Assistant` GitHub App 安裝與 branch ruleset。不要只因 workflow 檔案存在，就推定所有外部設定已完成。

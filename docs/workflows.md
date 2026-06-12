@@ -43,6 +43,29 @@ flowchart TD
 
 自動核准與合併只代表 profile PR 符合低風險自助更新條件，而且 username 已經被 canonical data 以裸值參照。它不代表 workflow 建立了新的身份合併，也不代表它處理了歷史資料更正、刪除 profile、rename profile 或隱私政策例外。`site:<source_person_id>` 不會讓 profile PR 自動通過。
 
+## profile issue 的 claim-only 流程
+
+```mermaid
+flowchart TD
+  issue["credits-profiles：profile-request issue"] --> sameProfile{"產出的 profile JSON 已和現有檔案相同？"}
+  sameProfile -->|否| prFlow["建立或更新 profile PR"]
+  sameProfile -->|是，沒有 site: 標記| noOp["成功結束，不留言"]
+  sameProfile -->|是，有 site: 標記| dispatchIssue["repository_dispatch: review-profile-claim-issue"]
+  dispatchIssue --> reviewIssue["credits：Review profile claim issue"]
+  reviewIssue --> exportSheet["匯出 canonical Google Sheet"]
+  exportSheet --> claimPlan{"仍有可套用的 site: appearances？"}
+  claimPlan -->|否| clean["不建立新通知，必要時清掉舊確認 comment"]
+  claimPlan -->|是| issueComment["在原 issue upsert 維護者確認 checkbox"]
+  issueComment --> apply["維護者勾選確認項目"]
+  apply --> sheet["credits：Apply profile claims 寫入 Sheet"]
+  sheet --> pages["Deploy GitHub Pages"]
+  pages --> done["回原 issue 留公開頁面連結並關閉 issue"]
+```
+
+這條路徑處理「貢獻者的 profile 欄位沒有變，但想 claim 歷史貢獻紀錄」的情境。`credits-profiles` 不會為了 claim 建立空 commit 或空 PR；它只把 issue number 與 GitHub username dispatch 到 `credits`。`credits` 會重新讀 canonical Sheet、從 issue body 解析 `?claim=1&claims=...` 標記網址，並只把仍然等於 `site:<source_person_id>` 的 rows 列入維護者確認。
+
+為了降低不必要通知，issue-only 流程只會在有待確認 rows 時維護一則固定 marker comment；內容沒變就不更新。沒有 profile 差異且沒有可套用 claim 時，workflow 會成功結束，不新增 issue comment。維護者勾選 checkbox 後，apply workflow 會重新讀取確認 comment metadata 與最新 Sheet，確認 plan hash 相符才寫入 Google Sheets；Pages deploy 成功後才留下公開頁面連結並關閉 issue。
+
 ## Sheets 匯出與空白 profile template
 
 ```mermaid
@@ -79,13 +102,13 @@ flowchart TD
   validate --> build["建立 dist 靜態網站"]
   build --> artifact["上傳 Pages artifact"]
   artifact --> deploy["部署 GitHub Pages"]
-  deploy --> publishedComment{"profile PR payload 存在？"}
-  publishedComment -->|是| comment["留言告知 PR 與 linked issue 可查看 #person 頁面，並關閉 issue"]
+  deploy --> publishedComment{"profile PR 或 issue payload 存在？"}
+  publishedComment -->|是| comment["留言告知 PR 或 issue 可查看 #person 頁面，並關閉 linked issue 或原 issue"]
 ```
 
 `Deploy GitHub Pages` 會在 push 到 `master`、收到 `credits-profiles` 的 `rebuild-pages-from-profiles` dispatch，或手動觸發時執行。它需要 `GOOGLE_SERVICE_ACCOUNT_JSON` repository secret 讀取 canonical Sheet，並從 `credits-profiles` 讀取 contributor profile 與 `site-profiles` 顯示資料。workflow 會產生 `dist/`、上傳 Pages artifact，並交給 GitHub Pages 部署；repository 的 Pages build type 是 GitHub Actions。
 
-若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言；若 PR body linked 到 profile request issue，也會先回到原 issue 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現，再關閉原 issue。
+若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言；若 PR body linked 到 profile request issue，也會先回到原 issue 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現，再關閉原 issue。claim-only issue 套用成功後也會走同一個 Pages deploy 成功通知，但 payload 只帶原 issue number，不需要建立 profile PR。
 
 Pages 網頁預設只提供公開索引查詢。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)；頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
 
