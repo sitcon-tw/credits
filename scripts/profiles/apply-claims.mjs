@@ -7,9 +7,14 @@ import { SHEETS_API, sheetsFetch } from '../lib/google-sheets-api.mjs';
 import { DEFAULT_CONFIG_PATH, readSheetsConfig } from '../lib/sheets-config.mjs';
 import {
   buildProfileClaimPlan,
+  buildProfileClaimPlanFromIssue,
   buildSheetValueUpdates,
   formatApplyFailureOutput,
 } from './claim-confirmation.mjs';
+import {
+  isApplyCheckboxChecked,
+  parseClaimMetadata,
+} from './create-claim-comment.mjs';
 import { extractLinkedIssueNumber } from './create-claim-check.mjs';
 
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -33,23 +38,16 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 }
 
 export async function applyProfileClaims(options, env, token) {
-  const [config, pullRequest] = await Promise.all([
+  const [config, exportPayload] = await Promise.all([
     readSheetsConfig(options.configPath),
-    githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`),
-  ]);
-  if (pullRequest.state !== 'open') {
-    throw new Error(`PR #${options.pullNumber} is ${pullRequest.state}; only open PRs can apply profile claims.`);
-  }
-  if (pullRequest.head?.sha !== options.headSha) {
-    throw new Error('PR head SHA changed; rerun profile review before applying claims.');
-  }
-
-  const [files, sourceIssue, exportPayload] = await Promise.all([
-    githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}/files?per_page=100`),
-    fetchLinkedIssue(token, options, pullRequest),
     readJson(options.exportPath),
   ]);
-  const plan = buildProfileClaimPlan({ pullRequest, files, sourceIssue, exportPayload });
+  const result = options.issueNumber
+    ? await buildIssueModeApplyResult(options, token, exportPayload)
+    : await buildPullRequestModeApplyResult(options, token, exportPayload);
+  const { plan } = result;
+  validateConfirmedComment(result.comment, options, plan);
+
   if (plan.status !== 'ready') {
     throw new Error(`profile claim plan is not ready: ${plan.reason}`);
   }
@@ -70,6 +68,46 @@ export async function applyProfileClaims(options, env, token) {
   await applySheetValueUpdates(config, buildSheetValueUpdates(config, plan), accessToken);
 
   return { plan, applied: true };
+}
+
+async function buildPullRequestModeApplyResult(options, token, exportPayload) {
+  const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`);
+  if (pullRequest.state !== 'open') {
+    throw new Error(`PR #${options.pullNumber} is ${pullRequest.state}; only open PRs can apply profile claims.`);
+  }
+  if (pullRequest.head?.sha !== options.headSha) {
+    throw new Error('PR head SHA changed; rerun profile review before applying claims.');
+  }
+
+  const [files, sourceIssue, comment] = await Promise.all([
+    githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}/files?per_page=100`),
+    fetchLinkedIssue(token, options, pullRequest),
+    fetchConfirmationComment(token, options),
+  ]);
+  const plan = buildProfileClaimPlan({ pullRequest, files, sourceIssue, exportPayload });
+  return { plan, comment };
+}
+
+async function buildIssueModeApplyResult(options, token, exportPayload) {
+  const [issue, comment] = await Promise.all([
+    githubRequest(token, `GET /repos/${options.owner}/${options.repo}/issues/${options.issueNumber}`),
+    fetchConfirmationComment(token, options),
+  ]);
+  if (issue.pull_request) {
+    throw new Error(`#${options.issueNumber} is a pull request; issue-mode claims require a profile request issue.`);
+  }
+  if (issue.state !== 'open') {
+    throw new Error(`Issue #${options.issueNumber} is ${issue.state}; only open issues can apply profile claims.`);
+  }
+  if (String(issue.user?.login ?? '').toLowerCase() !== String(options.username).toLowerCase()) {
+    throw new Error('Issue author does not match the requested profile username.');
+  }
+  const plan = buildProfileClaimPlanFromIssue({
+    issue,
+    username: options.username,
+    exportPayload,
+  });
+  return { plan, comment };
 }
 
 export function parseArgs(argv) {
@@ -100,6 +138,21 @@ export function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--issue-number') {
+      options.issueNumber = Number(readNextArg(argv, index, arg));
+      index += 1;
+      continue;
+    }
+    if (arg === '--username') {
+      options.username = readNextArg(argv, index, arg);
+      index += 1;
+      continue;
+    }
+    if (arg === '--confirmation-comment-id') {
+      options.confirmationCommentId = readNextArg(argv, index, arg);
+      index += 1;
+      continue;
+    }
     if (arg === '--export') {
       options.exportPath = readNextArg(argv, index, arg);
       index += 1;
@@ -127,9 +180,22 @@ export function parseArgs(argv) {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  for (const key of ['owner', 'repo', 'pullNumber', 'headSha', 'exportPath']) {
+  for (const key of ['owner', 'repo', 'exportPath']) {
     if (!options[key]) {
       throw new Error(`Missing required option: ${key}`);
+    }
+  }
+  if (options.issueNumber) {
+    for (const key of ['issueNumber', 'username', 'confirmationCommentId']) {
+      if (!options[key]) {
+        throw new Error(`Missing required option: ${key}`);
+      }
+    }
+  } else {
+    for (const key of ['pullNumber', 'headSha', 'confirmationCommentId']) {
+      if (!options[key]) {
+        throw new Error(`Missing required option: ${key}`);
+      }
     }
   }
   return options;
@@ -179,6 +245,47 @@ async function fetchLinkedIssue(token, options, pullRequest) {
     return null;
   }
   return githubRequest(token, `GET /repos/${options.owner}/${options.repo}/issues/${issueNumber}`);
+}
+
+async function fetchConfirmationComment(token, options) {
+  if (!options.confirmationCommentId) {
+    throw new Error('confirmation comment id is required.');
+  }
+  return githubRequest(token, `GET /repos/${options.owner}/${options.repo}/issues/comments/${options.confirmationCommentId}`);
+}
+
+export function validateConfirmedComment(comment, options, plan) {
+  if (!isApplyCheckboxChecked(comment?.body)) {
+    throw new Error('confirmation comment checkbox is not checked.');
+  }
+  const metadata = parseClaimMetadata(comment.body);
+  if (!metadata) {
+    throw new Error('confirmation comment metadata is missing.');
+  }
+  if (options.issueNumber) {
+    if (metadata.mode !== 'issue') {
+      throw new Error('confirmation comment is not issue mode.');
+    }
+    if (metadata.issue_number !== options.issueNumber) {
+      throw new Error('confirmation comment issue number does not match.');
+    }
+    if (String(metadata.username ?? '').toLowerCase() !== String(options.username).toLowerCase()) {
+      throw new Error('confirmation comment username does not match.');
+    }
+  } else {
+    if (metadata.mode !== 'pull_request') {
+      throw new Error('confirmation comment is not pull request mode.');
+    }
+    if (metadata.pull_number !== options.pullNumber) {
+      throw new Error('confirmation comment pull number does not match.');
+    }
+    if (metadata.head_sha !== options.headSha) {
+      throw new Error('confirmation comment head SHA does not match.');
+    }
+  }
+  if (metadata.plan_hash !== plan.planHash) {
+    throw new Error('confirmation comment plan hash does not match the latest canonical data.');
+  }
 }
 
 function readNextArg(argv, index, name) {

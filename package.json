@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "node scripts/ensure-pnpm.mjs",
-    "test": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs && node --test scripts/lib/sheets-config.test.mjs scripts/sheets/export.test.mjs scripts/sheets/sync-people.test.mjs scripts/data/validate.test.mjs scripts/profiles/create-missing-templates.test.mjs scripts/profiles/claim-confirmation.test.mjs scripts/profiles/create-claim-check.test.mjs scripts/profiles/create-claim-comment.test.mjs scripts/profiles/apply-claims.test.mjs scripts/profiles/update-claim-check.test.mjs scripts/profiles/comment-published-profile.test.mjs scripts/site/build.test.mjs site/claim.test.js",
+    "test": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs && node --test scripts/lib/sheets-config.test.mjs scripts/sheets/export.test.mjs scripts/sheets/sync-people.test.mjs scripts/data/validate.test.mjs scripts/profiles/create-missing-templates.test.mjs scripts/profiles/claim-confirmation.test.mjs scripts/profiles/create-claim-check.test.mjs scripts/profiles/create-claim-comment.test.mjs scripts/profiles/create-claim-issue-comment.test.mjs scripts/profiles/apply-claims.test.mjs scripts/profiles/update-claim-check.test.mjs scripts/profiles/comment-published-profile.test.mjs scripts/site/build.test.mjs site/claim.test.js",
     "docs:check": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs",
     "sheets:export": "node scripts/ensure-pnpm.mjs && node scripts/sheets/export.mjs",
     "sheets:export:dry-run": "node scripts/ensure-pnpm.mjs && node scripts/sheets/export.mjs --dry-run",

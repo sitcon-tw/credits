@@ -4,11 +4,9 @@ import { test } from 'node:test';
 import {
   assistantCommentLogins,
   formatSkippedClaimPlan,
-  formatClaimWaitingIssueComment,
   hasConfirmedClaimComment,
   isApplyCheckboxChecked,
   isAssistantClaimComment,
-  isAssistantClaimWaitingIssueComment,
   parseArgs,
   parseClaimMetadata,
 } from './create-claim-comment.mjs';
@@ -109,8 +107,12 @@ test('isApplyCheckboxChecked detects checked claim confirmation item', () => {
 
 test('parseClaimMetadata reads claim comment metadata', () => {
   assert.deepEqual(parseClaimMetadata(confirmedClaimBody()), {
+    mode: 'pull_request',
     pull_number: 58,
+    issue_number: undefined,
     head_sha: 'abc123',
+    plan_hash: 'hash',
+    username: 'octocat',
   });
 });
 
@@ -145,37 +147,4 @@ test('hasConfirmedClaimComment requires assistant author, checked box, and match
       body: confirmedClaimBody({ headSha: 'old-head' }),
     },
   ], options), false);
-});
-
-test('formatClaimWaitingIssueComment tells issue author what is pending', () => {
-  const comment = formatClaimWaitingIssueComment({
-    pullNumber: 73,
-    username: 'kevin0216',
-    updates: [{ rowNumber: 2023 }, { rowNumber: 2081 }],
-  });
-
-  assert.match(comment, /sitcon-credits-profile-claim-waiting/);
-  assert.match(comment, /不需要你修改資料/);
-  assert.match(comment, /由維護者確認/);
-  assert.match(comment, /公開活動紀錄/);
-  assert.match(comment, /2 筆/);
-  assert.match(comment, /PR #73/);
-  assert.match(comment, /夥伴協助確認/);
-});
-
-test('isAssistantClaimWaitingIssueComment ignores user-authored marker comments', () => {
-  const body = formatClaimWaitingIssueComment({
-    pullNumber: 73,
-    username: 'kevin0216',
-    updates: [],
-  });
-
-  assert.equal(isAssistantClaimWaitingIssueComment({
-    user: { login: 'denny0223' },
-    body,
-  }, 'sitcon-credits'), false);
-  assert.equal(isAssistantClaimWaitingIssueComment({
-    user: { login: 'sitcon-credits[bot]' },
-    body,
-  }, 'sitcon-credits'), true);
 });

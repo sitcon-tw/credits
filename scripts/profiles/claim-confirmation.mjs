@@ -13,8 +13,9 @@ const SITE_PROFILE_REF_PATTERN = /^site:[a-z0-9](?:[a-z0-9-]{0,128}[a-z0-9])?$/;
 const CLAIM_URL_PATTERN = /https?:\/\/[^\s<>)"]+/g;
 
 export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, exportPayload, acceptAppliedClaims = false }) {
-  const username = collectChangedProfileUsernames(files)[0] ?? '';
-  if (!GITHUB_USERNAME_PATTERN.test(username) || collectChangedProfileUsernames(files).length !== 1) {
+  const usernames = collectChangedProfileUsernames(files);
+  const username = usernames[0] ?? '';
+  if (!GITHUB_USERNAME_PATTERN.test(username) || usernames.length !== 1) {
     return {
       status: 'not_applicable',
       reason: 'expected-one-profile-username',
@@ -23,9 +24,41 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
     };
   }
 
+  const plan = buildProfileClaimPlanFromText({
+    username,
+    text: [
+      pullRequest?.body ?? '',
+      sourceIssue?.body ?? '',
+    ].join('\n\n'),
+    exportPayload,
+    acceptAppliedClaims,
+  });
+  if (plan.status !== 'ready') {
+    return plan;
+  }
+  return {
+    ...plan,
+    planHash: profileClaimPlanHash({
+      pullNumber: pullRequest?.number,
+      headSha: pullRequest?.head?.sha,
+      username,
+      updates: plan.updates,
+    }),
+  };
+}
+
+export function buildProfileClaimPlanFromText({ username, text, exportPayload, acceptAppliedClaims = false, hashContext = {} }) {
+  if (!GITHUB_USERNAME_PATTERN.test(username)) {
+    return {
+      status: 'not_applicable',
+      reason: 'invalid-profile-username',
+      username,
+      updates: [],
+    };
+  }
+
   const claimUrls = extractClaimUrls([
-    pullRequest?.body ?? '',
-    sourceIssue?.body ?? '',
+    text ?? '',
   ].join('\n\n'));
   const tokens = uniqueClaimTokens(claimUrls.flatMap((url) => parseClaimTokensFromUrl(url)));
   if (tokens.length === 0) {
@@ -112,12 +145,23 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
     tokens,
     updates,
     planHash: profileClaimPlanHash({
-      pullNumber: pullRequest?.number,
-      headSha: pullRequest?.head?.sha,
+      ...hashContext,
       username,
       updates,
     }),
   };
+}
+
+export function buildProfileClaimPlanFromIssue({ issue, username, exportPayload, acceptAppliedClaims = false }) {
+  return buildProfileClaimPlanFromText({
+    username,
+    text: issue?.body ?? '',
+    exportPayload,
+    acceptAppliedClaims,
+    hashContext: {
+      issueNumber: issue?.number,
+    },
+  });
 }
 
 export function buildSheetValueUpdates(config, plan) {
@@ -211,7 +255,9 @@ export function formatApplyFailureOutput(message) {
 
 export function formatClaimCommentBody(plan, options = {}) {
   const metadata = {
+    mode: options.mode ?? 'pull_request',
     pull_number: options.pullNumber,
+    issue_number: options.issueNumber,
     head_sha: options.headSha,
     plan_hash: plan.planHash ?? '',
     username: plan.username ?? '',
@@ -226,7 +272,7 @@ export function formatClaimCommentBody(plan, options = {}) {
       '',
       `profile username: \`${plan.username}\``,
       '',
-      '下列 canonical appearances 目前仍使用活動網站來源的 `site:` reference。若確認這些項目是在記錄此 PR 的使用者，請勾選下面的確認項目。',
+      `下列 canonical appearances 目前仍使用活動網站來源的 \`site:\` reference。若確認這些項目是在記錄此${options.mode === 'issue' ? ' issue' : ' PR'}的使用者，請勾選下面的確認項目。`,
       '',
       formatUpdatesTable(plan.updates),
       '',
@@ -248,7 +294,7 @@ export function formatClaimCommentBody(plan, options = {}) {
     plan.issues?.length ? formatIssues(plan.issues) : '',
     plan.updates?.length ? formatUpdatesTable(plan.updates) : '',
     '',
-    '請維護者人工檢查 PR 內的貢獻紀錄標記網址與 canonical Google Sheet。',
+    `請維護者人工檢查${options.mode === 'issue' ? ' issue' : ' PR'} 內的貢獻紀錄標記網址與 canonical Google Sheet。`,
   ].filter(Boolean).join('\n');
 }
 

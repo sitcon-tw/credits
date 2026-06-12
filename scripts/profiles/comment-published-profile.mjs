@@ -10,20 +10,29 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (!token) {
     throw new Error('GITHUB_TOKEN is required.');
   }
-  if (!options.pullNumber || !options.username) {
-    console.log('Profile published comment skipped: pull number or username is missing.');
+  if ((!options.pullNumber && !options.issueNumber) || !options.username) {
+    console.log('Profile published comment skipped: issue or pull number and username are required.');
     return;
   }
 
   const body = formatProfilePublishedComment(options.username);
-  await upsertProfilePublishedComment(token, options, options.pullNumber, body);
-  const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`);
-  const issueNumber = extractLinkedIssueNumber(pullRequest.body ?? '');
+  if (options.pullNumber) {
+    await upsertProfilePublishedComment(token, options, options.pullNumber, body);
+    const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${options.pullNumber}`);
+    const linkedIssueNumber = extractLinkedIssueNumber(pullRequest.body ?? '');
+    if (linkedIssueNumber) {
+      await upsertProfilePublishedComment(token, options, linkedIssueNumber, body);
+      await closeProfileRequestIssue(token, options, linkedIssueNumber);
+    }
+    console.log(`Profile published comment updated for PR #${options.pullNumber}.`);
+    return;
+  }
+  const issueNumber = options.issueNumber;
   if (issueNumber) {
     await upsertProfilePublishedComment(token, options, issueNumber, body);
     await closeProfileRequestIssue(token, options, issueNumber);
   }
-  console.log(`Profile published comment updated for PR #${options.pullNumber}.`);
+  console.log(`Profile published comment updated for issue #${issueNumber}.`);
 }
 
 export function parseArgs(argv) {
@@ -42,6 +51,11 @@ export function parseArgs(argv) {
     }
     if (arg === '--pull-number') {
       options.pullNumber = readNextArg(argv, index, arg);
+      index += 1;
+      continue;
+    }
+    if (arg === '--issue-number') {
+      options.issueNumber = readNextArg(argv, index, arg);
       index += 1;
       continue;
     }

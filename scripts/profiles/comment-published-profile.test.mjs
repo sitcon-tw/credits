@@ -13,12 +13,14 @@ test('parseArgs reads published profile comment options', () => {
     '--owner', 'sitcon-tw',
     '--repo', 'credits-profiles',
     '--pull-number', '58',
+    '--issue-number', '82',
     '--username', 'JadarTheObscurity',
     '--assistant-login', 'sitcon-credits',
   ]), {
     owner: 'sitcon-tw',
     repo: 'credits-profiles',
     pullNumber: '58',
+    issueNumber: '82',
     username: 'JadarTheObscurity',
     assistantLogin: 'sitcon-credits',
   });

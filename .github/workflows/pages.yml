@@ -77,10 +77,10 @@ jobs:
         uses: actions/deploy-pages@v5
 
   comment:
-    name: Comment on published profile PR
+    name: Comment on published profile request
     runs-on: ubuntu-latest
     needs: deploy
-    if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_pull_number && github.event.client_payload.profile_username
+    if: github.event_name == 'repository_dispatch' && github.event.client_payload.profile_username && (github.event.client_payload.profile_pull_number || github.event.client_payload.profile_issue_number)
     timeout-minutes: 10
 
     steps:
@@ -99,13 +99,20 @@ jobs:
           permission-issues: write
           permission-pull-requests: write
 
-      - name: Comment on published profile PR
+      - name: Comment on published profile request
         env:
           GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
-        run: >-
-          node scripts/profiles/comment-published-profile.mjs
-          --owner "sitcon-tw"
-          --repo "credits-profiles"
-          --pull-number "${{ github.event.client_payload.profile_pull_number }}"
-          --username "${{ github.event.client_payload.profile_username }}"
-          --assistant-login "${{ steps.credits-assistant-token.outputs.app-slug }}"
+        run: |
+          args=(
+            --owner "sitcon-tw"
+            --repo "credits-profiles"
+            --username "${{ github.event.client_payload.profile_username }}"
+            --assistant-login "${{ steps.credits-assistant-token.outputs.app-slug }}"
+          )
+          if [ -n "${{ github.event.client_payload.profile_pull_number }}" ]; then
+            args+=(--pull-number "${{ github.event.client_payload.profile_pull_number }}")
+          fi
+          if [ -n "${{ github.event.client_payload.profile_issue_number }}" ]; then
+            args+=(--issue-number "${{ github.event.client_payload.profile_issue_number }}")
+          fi
+          node scripts/profiles/comment-published-profile.mjs "${args[@]}"

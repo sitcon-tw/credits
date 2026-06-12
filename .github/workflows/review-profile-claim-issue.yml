@@ -1,0 +1,73 @@
+name: Review profile claim issue
+
+on:
+  repository_dispatch:
+    types:
+      - review-profile-claim-issue
+
+permissions:
+  contents: read
+
+concurrency:
+  group: profile-claim-issue-${{ github.event.client_payload.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Review claim-only profile issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out credits repository
+        uses: actions/checkout@v6
+
+      - name: Set up repository tools
+        uses: ./.github/actions/setup-tools
+
+      - name: Resolve request payload
+        id: payload
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const payload = context.payload.client_payload || {};
+            if (payload.source_repository !== 'sitcon-tw/credits-profiles') {
+              core.setFailed('source_repository must be sitcon-tw/credits-profiles.');
+              return;
+            }
+            if (!payload.issue_number || !payload.username) {
+              core.setFailed('issue_number and username are required.');
+              return;
+            }
+            core.setOutput('issue_number', String(payload.issue_number));
+            core.setOutput('username', String(payload.username));
+
+      - name: Write Google service account credentials
+        uses: ./.github/actions/google-credentials
+        with:
+          service-account-json: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Export canonical Sheet data
+        run: pnpm sheets:export --output-dir "$RUNNER_TEMP/sheets-export"
+
+      - name: Create credits assistant token
+        id: credits-assistant-token
+        uses: ./.github/actions/credits-assistant-token
+        with:
+          client-id: ${{ vars.SITCON_CREDITS_ASSISTANT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SITCON_CREDITS_ASSISTANT_APP_PRIVATE_KEY }}
+          repositories: credits-profiles
+          permission-issues: write
+
+      - name: Create profile claim issue confirmation
+        env:
+          GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
+        run: >-
+          node scripts/profiles/create-claim-issue-comment.mjs
+          --owner "sitcon-tw"
+          --repo "credits-profiles"
+          --issue-number "${{ steps.payload.outputs.issue_number }}"
+          --username "${{ steps.payload.outputs.username }}"
+          --export "$RUNNER_TEMP/sheets-export/export.json"
+          --assistant-login "${{ steps.credits-assistant-token.outputs.app-slug }}"
+          --plan-output "$RUNNER_TEMP/profile-claim-plan.json"

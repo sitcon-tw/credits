@@ -12,7 +12,6 @@ import {
 import { extractLinkedIssueNumber } from './create-claim-check.mjs';
 
 const DEFAULT_ASSISTANT_LOGIN = 'sitcon-credits';
-export const CLAIM_ISSUE_WAITING_MARKER = '<!-- sitcon-credits-profile-claim-waiting -->';
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   const options = parseArgs(argv);
@@ -68,13 +67,6 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     headSha: options.headSha,
   });
   const comment = await upsertClaimComment(token, options, body);
-  if (plan.status === 'ready' && sourceIssue?.number) {
-    await upsertClaimWaitingIssueComment(token, options, sourceIssue.number, formatClaimWaitingIssueComment({
-      pullNumber: options.pullNumber,
-      username: plan.username,
-      updates: plan.updates,
-    }));
-  }
   console.log(`Profile claim confirmation comment ${comment.id}: ${plan.reason}.`);
 }
 
@@ -135,6 +127,9 @@ export async function upsertClaimComment(token, options, body) {
   const comments = await githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/issues/${options.pullNumber}/comments?per_page=100`);
   const existing = comments.find((comment) => isAssistantClaimComment(comment, options.assistantLogin));
   if (existing) {
+    if (existing.body === body) {
+      return existing;
+    }
     return githubRequest(token, `PATCH /repos/${options.owner}/${options.repo}/issues/comments/${existing.id}`, { body });
   }
   return githubRequest(token, `POST /repos/${options.owner}/${options.repo}/issues/${options.pullNumber}/comments`, { body });
@@ -147,32 +142,6 @@ export async function deleteClaimComments(token, options) {
     await githubRequest(token, `DELETE /repos/${options.owner}/${options.repo}/issues/comments/${comment.id}`);
   }
   return matching.length;
-}
-
-export async function upsertClaimWaitingIssueComment(token, options, issueNumber, body) {
-  const comments = await githubPaginate(token, `GET /repos/${options.owner}/${options.repo}/issues/${issueNumber}/comments?per_page=100`);
-  const existing = comments.find((comment) => isAssistantClaimWaitingIssueComment(comment, options.assistantLogin));
-  if (existing) {
-    return githubRequest(token, `PATCH /repos/${options.owner}/${options.repo}/issues/comments/${existing.id}`, { body });
-  }
-  return githubRequest(token, `POST /repos/${options.owner}/${options.repo}/issues/${issueNumber}/comments`, { body });
-}
-
-export function formatClaimWaitingIssueComment({ pullNumber, username, updates }) {
-  const updateCount = updates?.length ?? 0;
-  return [
-    CLAIM_ISSUE_WAITING_MARKER,
-    `\`${username}\` 的 profile 資料格式已通過；目前不需要你修改資料。`,
-    '',
-    `因為你提供了貢獻紀錄標記網址，接下來會由維護者確認 ${updateCount} 筆公開活動紀錄是否可以連到你的 GitHub 帳號。確認完成後，系統才會更新 SITCON Credits 的主資料。`,
-    '',
-    `你可以到 PR #${pullNumber} 查看完整檢查紀錄。若等候很久都沒有回應，可以找熟悉 SITCON Credits 或這次活動紀錄的夥伴協助確認。`,
-  ].join('\n');
-}
-
-export function isAssistantClaimWaitingIssueComment(comment, assistantLogin = DEFAULT_ASSISTANT_LOGIN) {
-  return comment.body?.includes(CLAIM_ISSUE_WAITING_MARKER) &&
-    assistantCommentLogins(assistantLogin).has(comment.user?.login);
 }
 
 export function formatSkippedClaimPlan({ reason, pullRequest }) {
@@ -225,8 +194,12 @@ export function parseClaimMetadata(body) {
   try {
     const parsed = JSON.parse(match[1]);
     return {
-      pull_number: Number(parsed.pull_number),
+      mode: String(parsed.mode ?? 'pull_request'),
+      pull_number: parsed.pull_number === undefined ? undefined : Number(parsed.pull_number),
+      issue_number: parsed.issue_number === undefined ? undefined : Number(parsed.issue_number),
       head_sha: String(parsed.head_sha ?? ''),
+      plan_hash: String(parsed.plan_hash ?? ''),
+      username: String(parsed.username ?? ''),
     };
   } catch {
     return null;

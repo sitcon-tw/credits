@@ -3,6 +3,8 @@ import { test } from 'node:test';
 
 import {
   buildProfileClaimPlan,
+  buildProfileClaimPlanFromIssue,
+  buildProfileClaimPlanFromText,
   buildSheetValueUpdates,
   collectChangedProfileUsernames,
   extractClaimUrls,
@@ -98,6 +100,35 @@ test('buildProfileClaimPlan creates updates for matching site refs', () => {
   assert.equal(plan.updates.length, 2);
   assert.deepEqual(plan.updates.map((update) => update.rowNumber), [2, 3]);
   assert(plan.planHash);
+});
+
+test('buildProfileClaimPlanFromIssue creates claim-only updates from issue body', () => {
+  const plan = buildProfileClaimPlanFromIssue({
+    issue: {
+      number: 82,
+      body: 'https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a%2CJadarTheObscurity',
+    },
+    username: 'JadarTheObscurity',
+    exportPayload: exportPayload(),
+  });
+
+  assert.equal(plan.status, 'ready');
+  assert.equal(plan.username, 'JadarTheObscurity');
+  assert.deepEqual(plan.updates.map((update) => update.rowNumber), [2]);
+  assert.equal(plan.tokens.length, 1);
+  assert.equal(plan.tokens[0].raw, 'SITCON-2022/site:fd7f60e68311eea3de7c840fd1f53b0a');
+  assert(plan.planHash);
+});
+
+test('buildProfileClaimPlanFromText rejects invalid explicit usernames', () => {
+  const plan = buildProfileClaimPlanFromText({
+    username: '-bad',
+    text: 'https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a',
+    exportPayload: exportPayload(),
+  });
+
+  assert.equal(plan.status, 'not_applicable');
+  assert.equal(plan.reason, 'invalid-profile-username');
 });
 
 test('buildProfileClaimPlan still creates updates when username already appears elsewhere', () => {
@@ -252,4 +283,29 @@ test('formatClaimCommentBody includes maintainer checkbox and metadata', () => {
   assert.match(body, /"head_sha":"head-sha"/);
   assert.match(body, /- \[ \] 我已確認上述 1 筆歷史貢獻連結/);
   assert.match(body, /sitcon-credits-profile-claim-apply/);
+});
+
+test('formatClaimCommentBody supports issue-mode metadata', () => {
+  const body = formatClaimCommentBody({
+    status: 'ready',
+    username: 'octocat',
+    planHash: 'plan-hash',
+    updates: [
+      {
+        rowNumber: 2,
+        eventName: 'SITCON 2024',
+        displayNameAtEvent: 'Octo',
+        currentValue: 'site:source-1',
+        nextValue: 'octocat',
+      },
+    ],
+  }, {
+    mode: 'issue',
+    issueNumber: 82,
+  });
+
+  assert.match(body, /"mode":"issue"/);
+  assert.match(body, /"issue_number":82/);
+  assert.doesNotMatch(body, /"pull_number"/);
+  assert.doesNotMatch(body, /"head_sha"/);
 });
