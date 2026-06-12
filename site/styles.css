@@ -677,9 +677,27 @@ dialog::backdrop {
     padding-top: 34px;
   }
 
-  .stats,
   .claim-actions {
     grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .stats div {
+    min-height: 58px;
+    padding: 10px 8px;
+  }
+
+  .stats strong {
+    font-size: 1.25rem;
+  }
+
+  .stats span {
+    margin-top: 5px;
+    font-size: 0.78rem;
   }
 
   .toolbar {
