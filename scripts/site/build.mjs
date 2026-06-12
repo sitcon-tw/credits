@@ -130,7 +130,26 @@ async function readContributorProfiles(profilesDir) {
 function normalizeContributorProfile(username, profile) {
   return {
     username,
+    form: normalizeContributorProfileForm(profile),
     displayName: cleanText(profile.display_name) || username,
+    bio: cleanText(profile.bio),
+    avatarUrl: cleanUrl(profile.avatar_url),
+    publicEmail: cleanText(profile.public_email),
+    links: Array.isArray(profile.links)
+      ? profile.links
+          .map((link) => ({
+            type: cleanText(link.type),
+            label: cleanText(link.label),
+            url: cleanUrl(link.url),
+          }))
+          .filter((link) => link.type && link.url)
+      : [],
+  };
+}
+
+function normalizeContributorProfileForm(profile) {
+  return {
+    displayName: cleanText(profile.display_name),
     bio: cleanText(profile.bio),
     avatarUrl: cleanUrl(profile.avatar_url),
     publicEmail: cleanText(profile.public_email),
@@ -233,6 +252,11 @@ export function buildSiteData(payload, profileData) {
   const people = [...peopleByKey.values()]
     .map((person) => finalizePerson(person, eventsById))
     .sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName, 'zh-Hant'));
+  const profileForms = Object.fromEntries(
+    [...profileData.profiles.values()]
+      .sort((left, right) => left.username.toLowerCase().localeCompare(right.username.toLowerCase()))
+      .map((profile) => [profile.username.toLowerCase(), profile.form]),
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -255,6 +279,7 @@ export function buildSiteData(payload, profileData) {
       (a, b) => a.eventOrder - b.eventOrder || a.displayNameAtEvent.localeCompare(b.displayNameAtEvent, 'zh-Hant'),
     ),
     people,
+    profileForms,
   };
 }
 

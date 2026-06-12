@@ -165,11 +165,14 @@ function bindEvents() {
   }
   elements.claimIssueButton.addEventListener('click', () => {
     const claimUrl = currentClaimUrl();
-    if (isClaimUrlTooLong(claimUrl)) {
+    const issueUrl = profileRequestIssueUrl(claimUrl, {
+      profileForms: state.data?.profileForms,
+    });
+    if (isClaimUrlTooLong(issueUrl)) {
       showClaimNotice('標記網址較長，請先減少標記項目後再開啟表單。');
       return;
     }
-    window.open(profileRequestIssueUrl(claimUrl), '_blank', 'noopener');
+    window.open(issueUrl, '_blank', 'noopener');
   });
   elements.claimCopyLinkButton.addEventListener('click', () => {
     copyText(currentClaimUrl())

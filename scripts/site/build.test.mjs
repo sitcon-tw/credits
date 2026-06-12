@@ -97,8 +97,39 @@ test('buildSiteData aggregates all appearances into people by profile reference'
           displayName: 'Alice Profile',
           bio: 'Bio',
           avatarUrl: 'https://example.test/alice.jpg',
+          publicEmail: 'alice@example.test',
+          links: [
+            { type: 'github', url: 'https://github.com/alice' },
+            { type: 'custom', label: 'Portfolio', url: 'https://example.test/alice' },
+          ],
+          form: {
+            displayName: '',
+            bio: 'Bio',
+            avatarUrl: '',
+            publicEmail: 'alice@example.test',
+            links: [
+              { type: 'github', url: 'https://github.com/alice' },
+              { type: 'custom', label: 'Portfolio', url: 'https://example.test/alice' },
+            ],
+          },
+        },
+      ],
+      [
+        'unused',
+        {
+          username: 'unused',
+          displayName: 'Unused Profile',
+          bio: '',
+          avatarUrl: '',
           publicEmail: '',
           links: [],
+          form: {
+            displayName: 'Unused Profile',
+            bio: '',
+            avatarUrl: '',
+            publicEmail: '',
+            links: [],
+          },
         },
       ],
     ]),
@@ -121,6 +152,23 @@ test('buildSiteData aggregates all appearances into people by profile reference'
 
   const alice = data.people.find((person) => person.key === 'github:alice');
   assert.equal(alice.displayName, 'Alice Profile');
+  assert.deepEqual(data.profileForms.alice, {
+    displayName: '',
+    bio: 'Bio',
+    avatarUrl: '',
+    publicEmail: 'alice@example.test',
+    links: [
+      { type: 'github', url: 'https://github.com/alice' },
+      { type: 'custom', label: 'Portfolio', url: 'https://example.test/alice' },
+    ],
+  });
+  assert.deepEqual(data.profileForms.unused, {
+    displayName: 'Unused Profile',
+    bio: '',
+    avatarUrl: '',
+    publicEmail: '',
+    links: [],
+  });
   assert.equal(alice.claimable, true);
   assert.equal(alice.claimToken, 'Alice');
   assert.equal(alice.appearanceCount, 2);
