@@ -35,6 +35,7 @@ flowchart TD
 - `Trusted profile review` 只使用 base repository 的可信任程式碼，透過 GitHub API 讀取 PR head 的單一 profile JSON，檢查格式與 PR template 必要確認事項。
 - `Trusted profile review` 通過後 dispatch 到 `sitcon-tw/credits`，由 `Review profile PR` 在主 repo 的 secrets 之下匯出 canonical Google Sheet。
 - `Review profile PR` 會確認同一個 head SHA 的 `Check trusted profile PR` 與 `Check profile PR scope` 都成功，再檢查 PR 或 linked issue 內是否有仍待套用的 `site:` 標記網址。這段自動審查邏輯由 `credits-profiles` repo 的 `scripts/profiles/auto-review.mjs` 提供，workflow 會在 checkout 的 `tmp/credits-profiles` 下、於本 repo 的 secrets 環境執行它；本 repo 的 `scripts/profiles/` 不包含這支 script。
+- 若 `review-profile-pr` dispatch 到達時 PR head 已經更新或 PR 已關閉，`Review profile PR` 會把該次舊 head 視為已過期並略過；這是正常的競態收斂，不代表 canonical data 或 profile PR 本身失敗。
 - 若標記網址可精準對到 canonical Sheet 中仍使用 `site:<source_person_id>` 的 rows，workflow 會在 PR 上建立維護者確認 comment，列出將改成該 GitHub username 的 canonical rows；這會先阻擋自動合併，即使該 username 已經出現在其他 `appearances.github_username`。
 - 維護者勾選該 comment 內的確認 checkbox 後，`credits-profiles` 會確認勾選者有 repository write、maintain 或 admin 權限，再 dispatch 到 `credits` 寫入 canonical Google Sheet。若 GitHub comment event 沒有觸發，可用 `Apply profile claims` workflow_dispatch fallback 輸入 PR number 與 head SHA。
 - 沒有待套用標記網址時，workflow 才會以 profile username 是否已經以裸 GitHub username 形式存在於 `appearances.github_username` 判斷是否可自動核准並 squash merge。
