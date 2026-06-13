@@ -6,6 +6,8 @@ import {
   formatProfilePublishedComment,
   isAssistantProfilePublishedComment,
   parseArgs,
+  profileUsernameFromFiles,
+  sweepMergedProfilePulls,
 } from './comment-published-profile.mjs';
 
 test('parseArgs reads published profile comment options', () => {
@@ -16,6 +18,8 @@ test('parseArgs reads published profile comment options', () => {
     '--issue-number', '82',
     '--username', 'JadarTheObscurity',
     '--assistant-login', 'sitcon-credits',
+    '--sweep-merged-profile-pulls',
+    '--sweep-limit', '25',
   ]), {
     owner: 'sitcon-tw',
     repo: 'credits-profiles',
@@ -23,6 +27,8 @@ test('parseArgs reads published profile comment options', () => {
     issueNumber: '82',
     username: 'JadarTheObscurity',
     assistantLogin: 'sitcon-credits',
+    sweepMergedProfilePulls: true,
+    sweepLimit: 25,
   });
 });
 
@@ -41,6 +47,77 @@ test('extractLinkedIssueNumber reads closing and reference keywords from PR body
   assert.equal(extractLinkedIssueNumber('No linked issue'), null);
 });
 
+test('profileUsernameFromFiles requires exactly one changed profile file', () => {
+  assert.equal(profileUsernameFromFiles([
+    { filename: 'profiles/alice.json', status: 'added' },
+    { filename: 'README.md', status: 'modified' },
+  ]), 'alice');
+  assert.equal(profileUsernameFromFiles([
+    { filename: 'profiles/alice.json', status: 'added' },
+    { filename: 'profiles/bob.json', status: 'added' },
+  ]), '');
+  assert.equal(profileUsernameFromFiles([
+    { filename: 'profiles/alice.json', status: 'removed' },
+  ]), '');
+});
+
+test('sweepMergedProfilePulls comments and closes linked merged profile PRs', async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    const requestUrl = new URL(url);
+    calls.push({ method: options.method, path: requestUrl.pathname, search: requestUrl.search, body: options.body });
+    const route = `${options.method} ${requestUrl.pathname}${requestUrl.search}`;
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls?state=closed&sort=updated&direction=desc&per_page=10') {
+      return jsonResponse([
+        { number: 58, merged_at: '2026-06-13T02:24:30Z', body: 'Refs #82' },
+        { number: 59, merged_at: null, body: 'Refs #83' },
+        { number: 60, merged_at: '2026-06-13T02:25:30Z', body: 'No linked issue' },
+      ]);
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls/58') {
+      return jsonResponse({ number: 58, body: 'Refs #82' });
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls/58/files?per_page=100') {
+      return jsonResponse([{ filename: 'profiles/alice.json', status: 'added' }]);
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/58/comments?per_page=100') {
+      return jsonResponse([]);
+    }
+    if (route === 'POST /repos/sitcon-tw/credits-profiles/issues/58/comments') {
+      return jsonResponse({ id: 1 });
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82') {
+      return jsonResponse({ number: 82, labels: [{ name: 'profile-request' }] });
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82/comments?per_page=100') {
+      return jsonResponse([]);
+    }
+    if (route === 'POST /repos/sitcon-tw/credits-profiles/issues/82/comments') {
+      return jsonResponse({ id: 2 });
+    }
+    if (route === 'PATCH /repos/sitcon-tw/credits-profiles/issues/82') {
+      return jsonResponse({ number: 82, state: 'closed' });
+    }
+    throw new Error(`Unexpected request: ${route}`);
+  };
+
+  try {
+    const count = await sweepMergedProfilePulls('token', {
+      owner: 'sitcon-tw',
+      repo: 'credits-profiles',
+      assistantLogin: 'sitcon-credits',
+      sweepLimit: 10,
+    });
+
+    assert.equal(count, 1);
+    assert.equal(calls.some((call) => call.method === 'POST' && call.path === '/repos/sitcon-tw/credits-profiles/issues/82/comments'), true);
+    assert.equal(calls.some((call) => call.method === 'PATCH' && call.path === '/repos/sitcon-tw/credits-profiles/issues/82'), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('isAssistantProfilePublishedComment ignores user marker comments', () => {
   const body = formatProfilePublishedComment('octocat');
 
@@ -53,3 +130,10 @@ test('isAssistantProfilePublishedComment ignores user marker comments', () => {
     body,
   }, 'sitcon-credits'), true);
 });
+
+function jsonResponse(value) {
+  return new Response(JSON.stringify(value), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
