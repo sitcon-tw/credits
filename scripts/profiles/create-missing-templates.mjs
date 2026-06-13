@@ -85,7 +85,7 @@ export async function createMissingProfileTemplates(peopleRows, profilesDir) {
     }
 
     const filePath = path.join(profilesDir, `${username}.json`);
-    await writeFile(filePath, `${JSON.stringify(blankProfileTemplate(), null, 2)}\n`);
+    await writeFile(filePath, `${JSON.stringify(blankProfileTemplate(username), null, 2)}\n`);
     existingUsernames.add(username.toLowerCase());
     createdFiles.push(filePath);
   }
@@ -131,12 +131,12 @@ async function readExistingProfileUsernames(profilesDir) {
   return usernames;
 }
 
-function blankProfileTemplate() {
+function blankProfileTemplate(username) {
   return {
     $schema: '../schemas/profile.schema.json',
     display_name: '',
     bio: '',
-    avatar_url: '',
+    avatar_url: `https://github.com/${username}.png?size=512`,
     public_email: '',
     links: [],
   };

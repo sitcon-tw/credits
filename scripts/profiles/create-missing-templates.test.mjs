@@ -53,6 +53,9 @@ test('createMissingProfileTemplates writes only missing blank templates', async 
   const carol = JSON.parse(await readFile(path.join(profilesDir, 'carol.json'), 'utf8'));
 
   assert.equal(alice.display_name, '');
+  assert.equal(alice.avatar_url, 'https://github.com/alice.png?size=512');
   assert.equal(bob.bio, '');
+  assert.equal(bob.avatar_url, 'https://github.com/Bob.png?size=512');
+  assert.equal(carol.avatar_url, 'https://github.com/carol.png?size=512');
   assert.deepEqual(carol.links, []);
 });
