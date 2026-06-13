@@ -110,6 +110,10 @@ flowchart TD
 
 若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言；若 PR body linked 到 profile request issue，也會先回到原 issue 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現，再關閉原 issue。claim-only issue 套用成功後也會走同一個 Pages deploy 成功通知，但 payload 只帶原 issue number，不需要建立 profile PR。
 
+profile issue form 產生的 PR body 刻意使用 `Refs #...`，而不是 `Closes #...`、`Fixes #...` 或 `Resolves #...`。這是因為 profile PR merge 只代表 profile JSON 已進入 `credits-profiles`，還不代表 `credits` 已重新匯出 canonical Sheet、重建並部署公開 Pages。若使用 GitHub 自動 close keyword，issue 會在 PR merge 時提早關閉，維護者和貢獻者無法從 issue 狀態判斷後續 rebuild 是否真的完成。正確完成點是 Pages deploy 成功後，由 `Deploy GitHub Pages` 留下公開頁面連結，再由 bot 明確關閉 linked issue。
+
+`Deploy GitHub Pages` 使用 workflow concurrency 讓連續 profile merge 的 Pages rebuild 收斂到最新一次。較早的 rebuild run 可能被後續 run 取消；這是為了避免短時間重複部署。為了不讓被取消 run 的 profile request issue 遺失收尾，部署成功後的通知步驟除了處理當次 dispatch payload，也會掃描近期已 merge、linked 到 profile request issue、且修改單一 `profiles/*.json` 的 profile PR，補上同一則已部署 comment 並關閉 linked issue。
+
 Pages 網頁預設只提供公開索引查詢。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)；頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
 
 Pages 前端是公開索引與標記流程的原型凍結版，會繼續透過 GitHub Actions 部署公開輸出。部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用時，仍可依問題性質另外處理；其他前端新功能、介面微調、體驗修補或重新設計期待，請集中到 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，作為後續訪談、設計討論與規劃輸入。

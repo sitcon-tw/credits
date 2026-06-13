@@ -62,6 +62,8 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 | `Apply profile claims` | `credits-profiles` PR 或 issue comment checkbox dispatch、手動觸發 | 維護者確認標記網址後，重新驗證 confirmation comment 與 canonical Sheet，將仍符合的 `site:` appearances 改成該 GitHub username；PR mode 會重跑 profile PR review，issue mode 會觸發 Pages rebuild。 |
 | `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、建立 `dist/`，部署到 GitHub Pages；profile PR 或 claim-only issue 觸發的部署成功後，回到對應 PR 或 issue 留言告知公開頁面連結，並關閉 linked issue 或原 issue。 |
 
+profile issue form 產生的 PR 會用 `Refs #...` 連回原 issue，而不是使用 GitHub 會在 PR merge 時自動關 issue 的 close keyword。profile PR merge 只是 `credits-profiles` 的 profile JSON 已合併，還要等 `credits` 重新匯出 canonical Sheet、重建並部署 Pages 後，公開頁面才可確認。issue 的完成狀態因此由 `Deploy GitHub Pages` 的部署後 comment/close 控制；若連續 profile merge 讓較早的 Pages run 被 concurrency 取消，後續成功部署會掃描近期已 merge 的 profile PR，補齊被取消 run 遺失的 issue 收尾。
+
 `CI` 不讀取 service account credentials、不連線 Google APIs，也不匯出 canonical Sheet。`Export Sheets data`、`Sync people helper`、`Review profile PR` 和 `Deploy GitHub Pages` 需要維護者先在 GitHub repository secrets 設定 `GOOGLE_SERVICE_ACCOUNT_JSON`。
 
 跨 repo 寫入、留言、核准或合併 `credits-profiles` 另需安裝 `SITCON Credits Assistant` GitHub App，並設定：
