@@ -59,10 +59,10 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 | `Sync people helper` | `credits-profiles` repository dispatch、手動觸發 | 將 `credits-profiles` 的 profile username 與 display name 同步到 Google Sheets 的 `people` helper sheet。 |
 | `Review profile PR` | `credits-profiles` repository dispatch | 匯出 canonical Google Sheet，確認 profile PR 的 username 是否已出現在 `appearances.github_username`，符合條件時核准並 squash merge，不符合時留言提醒維護者。 |
 | `Review profile claim issue` | `credits-profiles` claim-only issue dispatch | 當 profile issue 產出的 JSON 沒有變更但含 `site:` 標記網址時，匯出 canonical Google Sheet，在原 issue 建立或更新維護者確認 comment。 |
-| `Apply profile claims` | `credits-profiles` PR 或 issue comment checkbox dispatch、手動觸發 | 維護者確認標記網址後，重新驗證 confirmation comment 與 canonical Sheet，將仍符合的 `site:` appearances 改成該 GitHub username；PR mode 會重跑 profile PR review，issue mode 會觸發 Pages rebuild。 |
+| `Apply profile claims` | `credits-profiles` PR 或 issue comment checkbox dispatch、手動觸發 | 維護者確認標記網址後，重新驗證 confirmation comment 與 canonical Sheet，將仍符合的 `site:` appearances 改成該 GitHub username；PR mode 會重跑 profile PR review，issue mode 會觸發 Pages rebuild。workflow 也會掃描近期已勾選的 confirmation comments，補償被 GitHub Actions skip 或 cancel 而沒有完成 apply 或後續 dispatch 的項目。 |
 | `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、建立 `dist/`，部署到 GitHub Pages；profile PR 或 claim-only issue 觸發的部署成功後，回到對應 PR 或 issue 留言告知公開頁面連結，並關閉 linked issue 或原 issue。 |
 
-profile issue form 產生的 PR 會用 `Refs #...` 連回原 issue，而不是使用 GitHub 會在 PR merge 時自動關 issue 的 close keyword。profile PR merge 只是 `credits-profiles` 的 profile JSON 已合併，還要等 `credits` 重新匯出 canonical Sheet、重建並部署 Pages 後，公開頁面才可確認。issue 的完成狀態因此由 `Deploy GitHub Pages` 的部署後 comment/close 控制；若連續 profile merge 讓較早的 Pages run 被 concurrency 取消，後續成功部署會掃描近期已 merge 的 profile PR，補齊被取消 run 遺失的 issue 收尾。
+profile issue form 產生的 PR 會用 `Refs #...` 連回原 issue，而不是使用 GitHub 會在 PR merge 時自動關 issue 的 close keyword。profile PR merge 只是 `credits-profiles` 的 profile JSON 已合併，還要等 `credits` 重新匯出 canonical Sheet、重建並部署 Pages 後，公開頁面才可確認。issue 的完成狀態因此由 `Deploy GitHub Pages` 的部署後 comment/close 控制；若連續 profile merge 讓較早的 Pages run 被 concurrency 取消，後續成功部署只會掃描仍 open 的 `profile-request` issues，再尋找對應已 merge 的 profile PR 來補齊被取消 run 遺失的 issue 收尾；已關閉的 PR 或 issue 不會被當成補償掃描目標。
 
 `CI` 不讀取 service account credentials、不連線 Google APIs，也不匯出 canonical Sheet。`Export Sheets data`、`Sync people helper`、`Review profile PR` 和 `Deploy GitHub Pages` 需要維護者先在 GitHub repository secrets 設定 `GOOGLE_SERVICE_ACCOUNT_JSON`。
 
@@ -75,7 +75,11 @@ profile issue form 產生的 PR 會用 `Refs #...` 連回原 issue，而不是�
 
 `Review profile PR` 若看到 PR 內有 `?claim=1&claims=...` 標記網址，且標記可精準對到 canonical Sheet 中仍存在的 `site:` references，會建立維護者確認 comment。維護者勾選 comment 內的確認 checkbox，代表確認這些歷史 appearances 可連到該 PR 的 GitHub username；系統會重新匯出 Sheet、確認值仍完全符合、才寫回 `appearances.github_username`。
 
-若 profile request issue 產出的 profile JSON 已和現有 profile 檔案相同、branch 也沒有可開 PR 的差異，但 issue 內仍有 `site:` 標記網址，`credits-profiles` 會改 dispatch `Review profile claim issue`。這條 issue-only 流程不建立空 commit 或空 PR；`credits` 只會在有待確認 rows 時維護一則固定 marker comment，內容未變時不更新，避免對 issue 建立者產生多餘通知。維護者勾選後，`Apply profile claims` 會用 confirmation comment id 重新驗證 metadata、checkbox 與 plan hash。若 GitHub 沒有觸發 comment event，可手動執行 `Apply profile claims` workflow；PR mode 需輸入 PR number、head SHA 與 confirmation comment id。
+confirmation comment 本身是可恢復的確認意圖；`credits-profiles` 的 comment event dispatch 只是觸發訊號。若 GitHub Actions 建立了 `Apply profile claims` run 但在進入 job 前被 skip 或 cancel，後續的 `Apply profile claims` 手動或自動執行會掃描近期已勾選的 confirmation comments，重新驗證 metadata、checkbox、PR head SHA、plan hash 與 canonical Sheet，再補 apply 或補 dispatch `Review profile PR` / Pages rebuild。這個補償流程不放寬身份確認條件，也不使用維護者個人 token。
+
+為了避免同一份已匯出的 canonical Sheet snapshot 在寫入後變成過期資料，claim recovery 每次 run 最多只會補寫一筆尚未套用的 Sheet 更新；同一輪仍可補送已套用但漏掉的 review 或 Pages dispatch。若一次有多筆 apply 積壓，維護者可以重複執行 recovery-only 模式，或等待後續 `Apply profile claims` run 逐筆消化。
+
+若 profile request issue 產出的 profile JSON 已和現有 profile 檔案相同、branch 也沒有可開 PR 的差異，但 issue 內仍有 `site:` 標記網址，`credits-profiles` 會改 dispatch `Review profile claim issue`。這條 issue-only 流程不建立空 commit 或空 PR；`credits` 只會在有待確認 rows 時維護一則固定 marker comment，內容未變時不更新，避免對 issue 建立者產生多餘通知。維護者勾選後，`Apply profile claims` 會用 confirmation comment id 重新驗證 metadata、checkbox 與 plan hash。若 GitHub 沒有觸發 comment event，可手動執行 `Apply profile claims` workflow；PR mode 需輸入 PR number、head SHA 與 confirmation comment id，也可用 recovery-only 模式掃描近期已勾選但未收斂的 confirmation comments。
 
 ## profile template 與 people helper
 

@@ -37,7 +37,7 @@ flowchart TD
 - `Review profile PR` 會確認同一個 head SHA 的 `Check trusted profile PR` 與 `Check profile PR scope` 都成功，再檢查 PR 或 linked issue 內是否有仍待套用的 `site:` 標記網址。這段自動審查邏輯由 `credits-profiles` repo 的 `scripts/profiles/auto-review.mjs` 提供，workflow 會在 checkout 的 `tmp/credits-profiles` 下、於本 repo 的 secrets 環境執行它；本 repo 的 `scripts/profiles/` 不包含這支 script。
 - 若 `review-profile-pr` dispatch 到達時 PR head 已經更新或 PR 已關閉，`Review profile PR` 會把該次舊 head 視為已過期並略過；這是正常的競態收斂，不代表 canonical data 或 profile PR 本身失敗。
 - 若標記網址可精準對到 canonical Sheet 中仍使用 `site:<source_person_id>` 的 rows，workflow 會在 PR 上建立維護者確認 comment，列出將改成該 GitHub username 的 canonical rows；這會先阻擋自動合併，即使該 username 已經出現在其他 `appearances.github_username`。
-- 維護者勾選該 comment 內的確認 checkbox 後，`credits-profiles` 會確認勾選者有 repository write、maintain 或 admin 權限，再 dispatch 到 `credits` 寫入 canonical Google Sheet。若 GitHub comment event 沒有觸發，可用 `Apply profile claims` workflow_dispatch fallback 輸入 PR number 與 head SHA。
+- 維護者勾選該 comment 內的確認 checkbox 後，`credits-profiles` 會確認勾選者有 repository write、maintain 或 admin 權限，再 dispatch 到 `credits` 寫入 canonical Google Sheet。confirmation comment 是可恢復的維護者確認意圖；若 dispatch 對應的 `Apply profile claims` run 被 skip 或 cancel，`credits` 後續執行時會掃描近期已勾選的 confirmation comments，重新驗證 metadata、checkbox、PR head SHA、plan hash 與 canonical Sheet，再補 apply 或補 dispatch `Review profile PR`。若 GitHub comment event 沒有觸發，可用 `Apply profile claims` workflow_dispatch fallback 輸入 PR number 與 head SHA，或用 recovery-only 模式掃描近期已勾選項目。
 - 沒有待套用標記網址時，workflow 才會以 profile username 是否已經以裸 GitHub username 形式存在於 `appearances.github_username` 判斷是否可自動核准並 squash merge。
 - 標記與 canonical Sheet 不一致、或 Sheet 中有多筆可疑匹配時，workflow 只會留言提醒維護者人工審查。
 
@@ -64,7 +64,7 @@ flowchart TD
 
 這條路徑處理「貢獻者的 profile 欄位沒有變，但想 claim 歷史貢獻紀錄」的情境。`credits-profiles` 不會為了 claim 建立空 commit 或空 PR；它只把 issue number 與 GitHub username dispatch 到 `credits`。`credits` 會重新讀 canonical Sheet、從 issue body 解析 `?claim=1&claims=...` 標記網址，並只把仍然等於 `site:<source_person_id>` 的 rows 列入維護者確認。
 
-為了降低不必要通知，issue-only 流程只會在有待確認 rows 時維護一則固定 marker comment；內容沒變就不更新。沒有 profile 差異且沒有可套用 claim 時，workflow 會成功結束，不新增 issue comment。維護者勾選 checkbox 後，apply workflow 會重新讀取確認 comment metadata 與最新 Sheet，確認 plan hash 相符才寫入 Google Sheets；Pages deploy 成功後才留下公開頁面連結並關閉 issue。
+為了降低不必要通知，issue-only 流程只會在有待確認 rows 時維護一則固定 marker comment；內容沒變就不更新。沒有 profile 差異且沒有可套用 claim 時，workflow 會成功結束，不新增 issue comment。維護者勾選 checkbox 後，apply workflow 會重新讀取確認 comment metadata 與最新 Sheet，確認 plan hash 相符才寫入 Google Sheets；若 apply dispatch 被 skip 或 cancel，後續 recovery sweep 會用同一則已勾選 comment 補 apply 或補 Pages rebuild dispatch。Pages deploy 成功後才留下公開頁面連結並關閉 issue。
 
 ## Sheets 匯出與空白 profile template
 
@@ -112,7 +112,7 @@ flowchart TD
 
 profile issue form 產生的 PR body 刻意使用 `Refs #...`，而不是 `Closes #...`、`Fixes #...` 或 `Resolves #...`。這是因為 profile PR merge 只代表 profile JSON 已進入 `credits-profiles`，還不代表 `credits` 已重新匯出 canonical Sheet、重建並部署公開 Pages。若使用 GitHub 自動 close keyword，issue 會在 PR merge 時提早關閉，維護者和貢獻者無法從 issue 狀態判斷後續 rebuild 是否真的完成。正確完成點是 Pages deploy 成功後，由 `Deploy GitHub Pages` 留下公開頁面連結，再由 bot 明確關閉 linked issue。
 
-`Deploy GitHub Pages` 使用 workflow concurrency 讓連續 profile merge 的 Pages rebuild 收斂到最新一次。較早的 rebuild run 可能被後續 run 取消；這是為了避免短時間重複部署。為了不讓被取消 run 的 profile request issue 遺失收尾，部署成功後的通知步驟除了處理當次 dispatch payload，也會掃描近期已 merge、linked 到 profile request issue、且修改單一 `profiles/*.json` 的 profile PR，補上同一則已部署 comment 並關閉 linked issue。
+`Deploy GitHub Pages` 使用 workflow concurrency 讓連續 profile merge 的 Pages rebuild 收斂到最新一次。較早的 rebuild run 可能被後續 run 取消；這是為了避免短時間重複部署。為了不讓被取消 run 的 profile request issue 遺失收尾，部署成功後的通知步驟除了處理當次 dispatch payload，也會從仍 open 的 `profile-request` issues 找回 linked merged PR，且只在該 PR 修改單一 `profiles/*.json` 時補上同一則已部署 comment 並關閉 linked issue。這個補償掃描以未關閉 issue 為入口，不會遍歷或重寫已關閉的歷史 PR。
 
 Pages 網頁預設只提供公開索引查詢。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)；頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
 
