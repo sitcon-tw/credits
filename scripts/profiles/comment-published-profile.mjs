@@ -10,7 +10,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (!token) {
     throw new Error('GITHUB_TOKEN is required.');
   }
-  if ((!options.pullNumber && !options.issueNumber && !options.sweepMergedProfilePulls) || (!options.username && !options.sweepMergedProfilePulls)) {
+  if ((!options.pullNumber && !options.issueNumber && !options.sweepOpenProfileRequests) || (!options.username && !options.sweepOpenProfileRequests)) {
     console.log('Profile published comment skipped: issue or pull number and username are required.');
     return;
   }
@@ -21,9 +21,9 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (options.issueNumber) {
     await commentOnPublishedProfileIssue(token, options, options.issueNumber, options.username);
   }
-  if (options.sweepMergedProfilePulls) {
-    const count = await sweepMergedProfilePulls(token, options);
-    console.log(`Profile published sweep processed ${count} merged profile PR(s).`);
+  if (options.sweepOpenProfileRequests) {
+    const count = await sweepOpenProfileRequestIssues(token, options);
+    console.log(`Profile published sweep processed ${count} open profile request issue(s).`);
   }
 }
 
@@ -61,8 +61,8 @@ export function parseArgs(argv) {
       index += 1;
       continue;
     }
-    if (arg === '--sweep-merged-profile-pulls') {
-      options.sweepMergedProfilePulls = true;
+    if (arg === '--sweep-open-profile-requests') {
+      options.sweepOpenProfileRequests = true;
       continue;
     }
     if (arg === '--sweep-limit') {
@@ -160,23 +160,42 @@ export async function commentOnPublishedProfileIssue(token, options, issueNumber
   console.log(`Profile published comment updated for issue #${issueNumber}.`);
 }
 
-export async function sweepMergedProfilePulls(token, options) {
+export async function sweepOpenProfileRequestIssues(token, options) {
   const limit = options.sweepLimit ?? 50;
-  const pulls = await githubRequest(
+  const issues = await githubRequest(
     token,
-    `GET /repos/${options.owner}/${options.repo}/pulls?state=closed&sort=updated&direction=desc&per_page=${limit}`,
+    `GET /repos/${options.owner}/${options.repo}/issues?state=open&labels=profile-request&sort=updated&direction=desc&per_page=${limit}`,
   );
   let count = 0;
-  for (const pullRequest of pulls) {
-    if (!pullRequest.merged_at || !extractLinkedIssueNumber(pullRequest.body ?? '')) {
+  for (const issue of issues) {
+    if (issue.pull_request) {
       continue;
     }
-    const processed = await commentOnPublishedProfilePull(token, options, pullRequest.number);
+    const pullNumber = await findMergedProfilePullForIssue(token, options, issue.number);
+    if (!pullNumber) {
+      continue;
+    }
+    const processed = await commentOnPublishedProfilePull(token, options, pullNumber);
     if (processed) {
       count += 1;
     }
   }
   return count;
+}
+
+async function findMergedProfilePullForIssue(token, options, issueNumber) {
+  const query = encodeURIComponent(`repo:${options.owner}/${options.repo} is:pr is:merged "#${issueNumber}"`);
+  const result = await githubRequest(token, `GET /search/issues?q=${query}&per_page=10`);
+  for (const item of result.items ?? []) {
+    if (!item.pull_request || item.state !== 'closed') {
+      continue;
+    }
+    const pullRequest = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/pulls/${item.number}`);
+    if (pullRequest.merged_at && extractLinkedIssueNumber(pullRequest.body ?? '') === issueNumber) {
+      return item.number;
+    }
+  }
+  return null;
 }
 
 async function profileUsernameFromPull(token, options, pullNumber) {
@@ -186,7 +205,7 @@ async function profileUsernameFromPull(token, options, pullNumber) {
 
 async function fetchClosableProfileRequestIssue(token, options, issueNumber) {
   const issue = await githubRequest(token, `GET /repos/${options.owner}/${options.repo}/issues/${issueNumber}`);
-  if (issue.pull_request) {
+  if (issue.pull_request || issue.state !== 'open') {
     return null;
   }
   const labels = issue.labels ?? [];

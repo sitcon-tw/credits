@@ -7,7 +7,7 @@ import {
   isAssistantProfilePublishedComment,
   parseArgs,
   profileUsernameFromFiles,
-  sweepMergedProfilePulls,
+  sweepOpenProfileRequestIssues,
 } from './comment-published-profile.mjs';
 
 test('parseArgs reads published profile comment options', () => {
@@ -18,7 +18,7 @@ test('parseArgs reads published profile comment options', () => {
     '--issue-number', '82',
     '--username', 'JadarTheObscurity',
     '--assistant-login', 'sitcon-credits',
-    '--sweep-merged-profile-pulls',
+    '--sweep-open-profile-requests',
     '--sweep-limit', '25',
   ]), {
     owner: 'sitcon-tw',
@@ -27,7 +27,7 @@ test('parseArgs reads published profile comment options', () => {
     issueNumber: '82',
     username: 'JadarTheObscurity',
     assistantLogin: 'sitcon-credits',
-    sweepMergedProfilePulls: true,
+    sweepOpenProfileRequests: true,
     sweepLimit: 25,
   });
 });
@@ -61,22 +61,29 @@ test('profileUsernameFromFiles requires exactly one changed profile file', () =>
   ]), '');
 });
 
-test('sweepMergedProfilePulls comments and closes linked merged profile PRs', async () => {
+test('sweepOpenProfileRequestIssues comments and closes open issues linked to merged profile PRs', async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options) => {
     const requestUrl = new URL(url);
     calls.push({ method: options.method, path: requestUrl.pathname, search: requestUrl.search, body: options.body });
     const route = `${options.method} ${requestUrl.pathname}${requestUrl.search}`;
-    if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls?state=closed&sort=updated&direction=desc&per_page=10') {
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues?state=open&labels=profile-request&sort=updated&direction=desc&per_page=10') {
       return jsonResponse([
-        { number: 58, merged_at: '2026-06-13T02:24:30Z', body: 'Refs #82' },
-        { number: 59, merged_at: null, body: 'Refs #83' },
-        { number: 60, merged_at: '2026-06-13T02:25:30Z', body: 'No linked issue' },
+        { number: 82, state: 'open', labels: [{ name: 'profile-request' }] },
+        { number: 83, state: 'open', labels: [{ name: 'profile-request' }] },
       ]);
     }
+    if (route === 'GET /search/issues?q=repo%3Asitcon-tw%2Fcredits-profiles%20is%3Apr%20is%3Amerged%20%22%2382%22&per_page=10') {
+      return jsonResponse({
+        items: [{ number: 58, state: 'closed', pull_request: { url: 'https://api.github.com/repos/sitcon-tw/credits-profiles/pulls/58' } }],
+      });
+    }
+    if (route === 'GET /search/issues?q=repo%3Asitcon-tw%2Fcredits-profiles%20is%3Apr%20is%3Amerged%20%22%2383%22&per_page=10') {
+      return jsonResponse({ items: [] });
+    }
     if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls/58') {
-      return jsonResponse({ number: 58, body: 'Refs #82' });
+      return jsonResponse({ number: 58, merged_at: '2026-06-13T02:24:30Z', body: 'Refs #82' });
     }
     if (route === 'GET /repos/sitcon-tw/credits-profiles/pulls/58/files?per_page=100') {
       return jsonResponse([{ filename: 'profiles/alice.json', status: 'added' }]);
@@ -88,7 +95,7 @@ test('sweepMergedProfilePulls comments and closes linked merged profile PRs', as
       return jsonResponse({ id: 1 });
     }
     if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82') {
-      return jsonResponse({ number: 82, labels: [{ name: 'profile-request' }] });
+      return jsonResponse({ number: 82, state: 'open', labels: [{ name: 'profile-request' }] });
     }
     if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82/comments?per_page=100') {
       return jsonResponse([]);
@@ -103,7 +110,7 @@ test('sweepMergedProfilePulls comments and closes linked merged profile PRs', as
   };
 
   try {
-    const count = await sweepMergedProfilePulls('token', {
+    const count = await sweepOpenProfileRequestIssues('token', {
       owner: 'sitcon-tw',
       repo: 'credits-profiles',
       assistantLogin: 'sitcon-credits',

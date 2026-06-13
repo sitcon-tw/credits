@@ -115,5 +115,5 @@ jobs:
           if [ -n "${{ github.event.client_payload.profile_issue_number }}" ]; then
             args+=(--issue-number "${{ github.event.client_payload.profile_issue_number }}")
           fi
-          args+=(--sweep-merged-profile-pulls --sweep-limit 50)
+          args+=(--sweep-open-profile-requests --sweep-limit 50)
           node scripts/profiles/comment-published-profile.mjs "${args[@]}"
