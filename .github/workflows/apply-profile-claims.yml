@@ -28,8 +28,23 @@ on:
         type: string
       confirmation_comment_id:
         description: Claim confirmation issue comment id
-        required: true
+        required: false
         type: string
+      recovery_only:
+        description: Only sweep checked profile claim confirmations for missed applies
+        required: false
+        type: boolean
+        default: false
+      recovery_since_hours:
+        description: Lookback window for checked claim confirmation recovery
+        required: false
+        type: number
+        default: 24
+      recovery_limit:
+        description: Maximum checked claim confirmation comments to inspect
+        required: false
+        type: number
+        default: 100
 
 permissions:
   contents: write
@@ -64,6 +79,13 @@ jobs:
           script: |
             const payload = context.payload.client_payload || {};
             const inputs = context.payload.inputs || {};
+            const recoveryOnly = payload.recovery_only ?? inputs.recovery_only ?? false;
+            if (String(recoveryOnly) === 'true') {
+              core.setOutput('mode', 'recovery');
+              core.setOutput('recovery_since_hours', String(payload.recovery_since_hours || inputs.recovery_since_hours || 24));
+              core.setOutput('recovery_limit', String(payload.recovery_limit || inputs.recovery_limit || 100));
+              return;
+            }
             const issueNumber = payload.issue_number || inputs.issue_number || '';
             const username = payload.username || inputs.username || '';
             const pullNumber = payload.pull_number || inputs.pull_number;
@@ -110,12 +132,14 @@ jobs:
         with:
           client-id: ${{ vars.SITCON_CREDITS_ASSISTANT_APP_CLIENT_ID }}
           private-key: ${{ secrets.SITCON_CREDITS_ASSISTANT_APP_PRIVATE_KEY }}
+          repositories: credits,credits-profiles
           permission-checks: write
           permission-contents: write
           permission-issues: write
           permission-pull-requests: write
 
       - name: Apply confirmed profile claims
+        if: steps.payload.outputs.mode != 'recovery'
         env:
           GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
           CHECK_RUN_ID: ${{ steps.payload.outputs.check_run_id }}
@@ -143,12 +167,40 @@ jobs:
           node scripts/profiles/apply-claims.mjs "${args[@]}" --plan-output "$RUNNER_TEMP/profile-claim-plan.json" --apply
 
       - name: Export canonical Sheet data after apply
+        if: steps.payload.outputs.mode != 'recovery'
         run: pnpm sheets:export --output-dir "$RUNNER_TEMP/sheets-export-after"
+
+      - name: Recover missed profile claim applies
+        env:
+          GITHUB_TOKEN: ${{ steps.credits-assistant-token.outputs.token }}
+        run: |
+          args=(
+            --owner "sitcon-tw"
+            --repo "credits-profiles"
+            --target-owner "sitcon-tw"
+            --target-repo "credits"
+            --assistant-login "${{ steps.credits-assistant-token.outputs.app-slug }}"
+            --since-hours "${{ steps.payload.outputs.recovery_since_hours || 24 }}"
+            --limit "${{ steps.payload.outputs.recovery_limit || 100 }}"
+            --apply
+          )
+          if [ "${{ steps.payload.outputs.mode }}" = "recovery" ]; then
+            args+=(--export "$RUNNER_TEMP/sheets-export-before/export.json")
+          else
+            args+=(--export "$RUNNER_TEMP/sheets-export-after/export.json")
+          fi
+          if [ -n "${{ steps.payload.outputs.confirmation_comment_id }}" ]; then
+            args+=(--exclude-comment-id "${{ steps.payload.outputs.confirmation_comment_id }}")
+          fi
+          node scripts/profiles/recover-claim-applies.mjs "${args[@]}"
+
+      - name: Export canonical Sheet data after recovery
+        run: pnpm sheets:export --output-dir "$RUNNER_TEMP/sheets-export-final"
 
       - name: Validate canonical data
         run: >-
           pnpm data:validate
-          --export "$RUNNER_TEMP/sheets-export-after/export.json"
+          --export "$RUNNER_TEMP/sheets-export-final/export.json"
           --site-profiles-dir tmp/credits-profiles/site-profiles
 
       - name: Mark profile claim check successful
