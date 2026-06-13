@@ -6,6 +6,7 @@ import { test } from 'node:test';
 
 import {
   buildProfileClaimPlan,
+  buildProfileClaimPlanFromIssue,
   formatClaimCommentBody,
 } from './claim-confirmation.mjs';
 import {
@@ -145,6 +146,89 @@ test('recoverProfileClaimApplies dispatches review for already-applied PR claims
   }
 });
 
+test('recoverProfileClaimApplies dry-runs checked issue comments that still need apply', async () => {
+  const exportPayload = exportWithGithubUsername('site:abc123');
+  const body = issueClaimCommentBody({
+    issueNumber: 82,
+    username: 'octocat',
+    exportPayload,
+  });
+  const calls = [];
+  const restore = mockFetch(async (route) => {
+    calls.push(route);
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/comments?since=2026-06-12T12%3A00%3A00.000Z&per_page=100') {
+      return jsonResponse([comment({ id: 654, issueNumber: 82, body, updatedAt: '2026-06-13T01:00:00Z' })]);
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82') {
+      return jsonResponse(profileRequestIssue({ number: 82, username: 'octocat' }));
+    }
+    throw new Error(`Unexpected route: ${route}`);
+  });
+
+  try {
+    const results = await recoverProfileClaimApplies({
+      owner: 'sitcon-tw',
+      repo: 'credits-profiles',
+      targetOwner: 'sitcon-tw',
+      targetRepo: 'credits',
+      exportPath: await writeExport(exportPayload),
+      assistantLogin: 'sitcon-credits',
+      sinceHours: 24,
+      limit: 10,
+      apply: false,
+      excludeCommentIds: new Set(),
+    }, {}, 'token');
+
+    assert.deepEqual(results.map((result) => result.decision), ['would-apply']);
+    assert.equal(calls.some((route) => route.startsWith('POST /repos/sitcon-tw/credits/dispatches')), false);
+  } finally {
+    restore();
+  }
+});
+
+test('recoverProfileClaimApplies dispatches Pages rebuild for already-applied issue claims', async () => {
+  const exportPayload = exportWithGithubUsername('octocat');
+  const body = [
+    '<!-- sitcon-credits-profile-claim-confirmation -->',
+    '<!-- sitcon-credits-profile-claim: {"mode":"issue","issue_number":82,"plan_hash":"oldhash","username":"octocat"} -->',
+    '- [x] 我已確認上述 1 筆歷史貢獻連結，請更新 SITCON Credits canonical Google Sheets。 <!-- sitcon-credits-profile-claim-apply -->',
+  ].join('\n');
+  const dispatched = [];
+  const restore = mockFetch(async (route) => {
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/comments?since=2026-06-12T12%3A00%3A00.000Z&per_page=100') {
+      return jsonResponse([comment({ id: 654, issueNumber: 82, body, updatedAt: '2026-06-13T01:00:00Z' })]);
+    }
+    if (route === 'GET /repos/sitcon-tw/credits-profiles/issues/82') {
+      return jsonResponse(profileRequestIssue({ number: 82, username: 'octocat' }));
+    }
+    throw new Error(`Unexpected route: ${route}`);
+  });
+
+  try {
+    const results = await recoverProfileClaimApplies({
+      owner: 'sitcon-tw',
+      repo: 'credits-profiles',
+      targetOwner: 'sitcon-tw',
+      targetRepo: 'credits',
+      exportPath: await writeExport(exportPayload),
+      assistantLogin: 'sitcon-credits',
+      sinceHours: 24,
+      limit: 10,
+      apply: true,
+      excludeCommentIds: new Set(),
+    }, {}, 'token', {
+      dispatchPagesRebuild: async (_token, _options, issueNumber, username) => {
+        dispatched.push({ issueNumber, username });
+      },
+    });
+
+    assert.deepEqual(results.map((result) => result.decision), ['already-applied-dispatched-pages']);
+    assert.deepEqual(dispatched, [{ issueNumber: 82, username: 'octocat' }]);
+  } finally {
+    restore();
+  }
+});
+
 function claimCommentBody({ pullNumber, headSha, username, exportPayload }) {
   const pull = pullRequest({ number: pullNumber, headSha, body: claimUrl });
   const plan = buildProfileClaimPlan({
@@ -154,6 +238,16 @@ function claimCommentBody({ pullNumber, headSha, username, exportPayload }) {
     exportPayload,
   });
   return formatClaimCommentBody(plan, { pullNumber, headSha }).replace('- [ ]', '- [x]');
+}
+
+function issueClaimCommentBody({ issueNumber, username, exportPayload }) {
+  const issue = profileRequestIssue({ number: issueNumber, username });
+  const plan = buildProfileClaimPlanFromIssue({
+    issue,
+    username,
+    exportPayload,
+  });
+  return formatClaimCommentBody(plan, { mode: 'issue', issueNumber }).replace('- [ ]', '- [x]');
 }
 
 function pullRequest({ number, headSha, body = `Refs #82\n\n${claimUrl}` }) {
@@ -173,6 +267,16 @@ function comment({ id, issueNumber, body, updatedAt = '2026-06-13T00:00:00Z' }) 
     user: { login: 'sitcon-credits[bot]' },
     created_at: updatedAt,
     updated_at: updatedAt,
+  };
+}
+
+function profileRequestIssue({ number, username }) {
+  return {
+    number,
+    state: 'open',
+    body: claimUrl,
+    user: { login: username },
+    labels: [{ name: 'profile-request' }],
   };
 }
 
