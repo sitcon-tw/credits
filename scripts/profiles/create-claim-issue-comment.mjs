@@ -38,7 +38,6 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     issue,
     username: options.username,
     exportPayload,
-    acceptAppliedClaims: hasConfirmedIssueClaimComment(comments, options),
   });
   await writeClaimPlan(options, plan);
   if (plan.status === 'not_applicable') {

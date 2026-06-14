@@ -160,16 +160,15 @@ test('buildProfileClaimPlan does not block when claim updates are already applie
     pullRequest: pullRequest('https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a'),
     files: [profileFile('JadarTheObscurity')],
     exportPayload: payload,
-    acceptAppliedClaims: true,
   });
 
   assert.equal(plan.status, 'not_applicable');
   assert.equal(plan.reason, 'claim-updates-already-applied');
 });
 
-test('buildProfileClaimPlan blocks applied-looking claims without confirmed comment context', () => {
+test('buildProfileClaimPlan blocks claims that match neither site ref nor target username', () => {
   const payload = exportPayload();
-  payload.sheets.appearances.rows[0].github_username = 'JadarTheObscurity';
+  payload.sheets.appearances.rows[0].github_username = 'someoneElse';
 
   const plan = buildProfileClaimPlan({
     pullRequest: pullRequest('https://sitcon.org/credits/?claim=1&claims=SITCON-2022%2Fsite%3Afd7f60e68311eea3de7c840fd1f53b0a'),

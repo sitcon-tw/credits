@@ -216,11 +216,6 @@ async function recoverPullRequestModeClaim(token, options, env, exportPayload, c
     files,
     sourceIssue,
     exportPayload,
-    acceptAppliedClaims: hasConfirmedClaimComment(comments, {
-      pullNumber,
-      headSha: metadata.head_sha,
-      assistantLogin: options.assistantLogin,
-    }),
   });
   if (appliedPlan.reason === 'claim-updates-already-applied') {
     if (options.apply) {
@@ -276,7 +271,6 @@ async function recoverIssueModeClaim(token, options, env, exportPayload, comment
     issue,
     username: metadata.username,
     exportPayload,
-    acceptAppliedClaims: true,
   });
   if (appliedPlan.reason === 'claim-updates-already-applied') {
     if (options.apply) {

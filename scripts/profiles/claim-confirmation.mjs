@@ -12,7 +12,7 @@ const GITHUB_USERNAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$
 const SITE_PROFILE_REF_PATTERN = /^site:[a-z0-9](?:[a-z0-9-]{0,128}[a-z0-9])?$/;
 const CLAIM_URL_PATTERN = /https?:\/\/[^\s<>)"]+/g;
 
-export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, exportPayload, acceptAppliedClaims = false }) {
+export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, exportPayload }) {
   const usernames = collectChangedProfileUsernames(files);
   const username = usernames[0] ?? '';
   if (!GITHUB_USERNAME_PATTERN.test(username) || usernames.length !== 1) {
@@ -31,7 +31,6 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
       sourceIssue?.body ?? '',
     ].join('\n\n'),
     exportPayload,
-    acceptAppliedClaims,
   });
   if (plan.status !== 'ready') {
     return plan;
@@ -47,7 +46,7 @@ export function buildProfileClaimPlan({ pullRequest, files, sourceIssue = null, 
   };
 }
 
-export function buildProfileClaimPlanFromText({ username, text, exportPayload, acceptAppliedClaims = false, hashContext = {} }) {
+export function buildProfileClaimPlanFromText({ username, text, exportPayload, hashContext = {} }) {
   if (!GITHUB_USERNAME_PATTERN.test(username)) {
     return {
       status: 'not_applicable',
@@ -88,10 +87,10 @@ export function buildProfileClaimPlanFromText({ username, text, exportPayload, a
       String(row.github_username ?? '').trim() === token.profileRef
     ));
     if (matches.length === 0) {
-      const appliedMatches = acceptAppliedClaims ? appearances.filter((row) => (
+      const appliedMatches = appearances.filter((row) => (
         String(row.event_id ?? '').trim() === token.eventId &&
         String(row.github_username ?? '').trim().toLowerCase() === username.toLowerCase()
-      )) : [];
+      ));
       if (appliedMatches.length === 0) {
         issues.push({
           token: token.raw,
@@ -152,12 +151,11 @@ export function buildProfileClaimPlanFromText({ username, text, exportPayload, a
   };
 }
 
-export function buildProfileClaimPlanFromIssue({ issue, username, exportPayload, acceptAppliedClaims = false }) {
+export function buildProfileClaimPlanFromIssue({ issue, username, exportPayload }) {
   return buildProfileClaimPlanFromText({
     username,
     text: issue?.body ?? '',
     exportPayload,
-    acceptAppliedClaims,
     hashContext: {
       issueNumber: issue?.number,
     },
