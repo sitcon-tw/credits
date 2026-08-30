@@ -48,11 +48,21 @@ jobs:
       - name: Validate exported data
         run: pnpm data:validate --site-profiles-dir=tmp/credits-profiles/site-profiles
 
-      - name: Build static site
+      - name: Restore avatar cache
+        uses: actions/cache@v4
+        with:
+          path: tmp/avatar-cache
+          key: avatar-cache-v1-${{ github.run_id }}
+          restore-keys: avatar-cache-v1-
+
+      - name: Build site data
         run: >-
-          pnpm site:build --
+          pnpm site:data --
           --profiles-dir tmp/credits-profiles/profiles
           --site-profiles-dir tmp/credits-profiles/site-profiles
+
+      - name: Build static site
+        run: pnpm exec astro build
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6

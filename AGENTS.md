@@ -74,6 +74,8 @@ Maintainer-approved means one of:
 
 Agent memory, similar names, unreviewed form submissions, or unreviewed Sheet rows are not maintainer approval.
 
+The public index may display-group site-profile records that share a `source_person_id`, or that share a normalized display name in adjacent event years, so they render as one badge in the field. This grouping exists only in the rendering layer: it is never written back to the Sheet, never links an appearance to a GitHub username, never merges a site record into a GitHub-linked profile, and is not identity-merge approval. The public page must state that the merge is display-only, and the canonical `appearances` rows stay untouched.
+
 ## Privacy and Removal Policy
 
 Historical records that were already published on official event websites are not hidden by default in this project.
@@ -159,6 +161,8 @@ Repository tooling may manage Google Sheets structure, header notes, validation 
 
 LLM agents may run dry-run, local validation, or static syntax-check commands that do not read credentials and do not contact Google APIs, such as `pnpm sheets:init:dry-run`, `pnpm sheets:export:dry-run`, `pnpm data:validate`, or `node --check ...`. `pnpm data:validate` may read `../credits-profiles/site-profiles` or an explicitly provided `--site-profiles-dir` path to verify `site:` references; it still must not read secrets or contact Google APIs.
 
+`pnpm site:data` builds the public index badge-field data and the avatar atlases into `public/assets/`, and `pnpm exec astro build` bundles the Astro site into `dist/`. `pnpm site:build` runs both but accepts no flags; pass flags to `site:data`. Atlas building fetches public avatar URLs over the network; pass `--skip-avatars` for an offline build, which renders the badges as flat coloured discs. `pnpm site:dev-fixture` downloads the already-published `site-data.json` from the public site into `tmp/dev/` so the page can be worked on at real scale. None of these commands read credentials or contact Google APIs.
+
 Do not run commands that read `GOOGLE_APPLICATION_CREDENTIALS` or contact Google APIs unless the user explicitly asks for that exact operation and the command can run without exposing secret contents. This includes credentialed commands such as `pnpm sheets:init` and `pnpm sheets:export`, even when the operation is read-only.
 
 ## Data Minimization
@@ -209,7 +213,7 @@ If a source is outside this repository, do not claim that it has been corrected.
 - `docs/workflows.md` is the reader-facing source for cross-repository GitHub Actions flowcharts and automation boundaries.
 - `docs/maintainer-guide.md` is the reader-facing source for local tools, credentialed operations, and maintainer setup.
 - `AGENTS.md` is the local instruction entrypoint for LLM agents.
-- The GitHub Pages frontend is a frozen prototype for the public index and claim flow. Do not implement general Pages feature work, UX polish, or interface tweaks unless the user explicitly changes this direction. Route frontend expectations, usage scenarios, and redesign ideas to https://github.com/sitcon-tw/credits/issues/2. Exceptions may include deployment failures, data security or privacy risks, visibly wrong public data, or an existing required flow becoming unusable.
+- The GitHub Pages frontend is an Astro 5 site. The public index is a three.js 3D badge field (`src/pages/index.astro`, `src/styles/index.css`, `src/scripts/index-page.js`, `src/scripts/field/*`); the claim flow is a separate page (`src/pages/claim.astro`, `src/scripts/claim-page.js`, `src/styles/claim.css`). Keep frontend expectations, usage scenarios, and redesign ideas routed to https://github.com/sitcon-tw/credits/issues/2 so they are collected before further interface work; deployment failures, data security or privacy risks, visibly wrong public data, and an existing required flow becoming unusable are always in scope to fix.
 - Keep `AGENTS.md` focused on agent-facing policy, safety boundaries, and routing rules. Do not turn it into the complete command manual as repository tooling grows.
 - Future technical docs should distinguish planned behavior from implemented behavior.
 - If tool-specific operational detail grows beyond short guardrails, move it into dedicated maintainer documentation and link or summarize the boundary here.

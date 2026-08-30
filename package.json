@@ -6,19 +6,33 @@
   "type": "module",
   "scripts": {
     "preinstall": "node scripts/ensure-pnpm.mjs",
-    "test": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs && node --test scripts/lib/sheets-config.test.mjs scripts/sheets/export.test.mjs scripts/sheets/sync-people.test.mjs scripts/data/validate.test.mjs scripts/profiles/create-missing-templates.test.mjs scripts/profiles/claim-confirmation.test.mjs scripts/profiles/create-claim-check.test.mjs scripts/profiles/create-claim-comment.test.mjs scripts/profiles/create-claim-issue-comment.test.mjs scripts/profiles/apply-claims.test.mjs scripts/profiles/recover-claim-applies.test.mjs scripts/profiles/update-claim-check.test.mjs scripts/profiles/comment-published-profile.test.mjs scripts/site/build.test.mjs site/claim.test.js",
+    "test": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs && node --test scripts/lib/sheets-config.test.mjs scripts/sheets/export.test.mjs scripts/sheets/sync-people.test.mjs scripts/data/validate.test.mjs scripts/profiles/create-missing-templates.test.mjs scripts/profiles/claim-confirmation.test.mjs scripts/profiles/create-claim-check.test.mjs scripts/profiles/create-claim-comment.test.mjs scripts/profiles/create-claim-issue-comment.test.mjs scripts/profiles/apply-claims.test.mjs scripts/profiles/recover-claim-applies.test.mjs scripts/profiles/update-claim-check.test.mjs scripts/profiles/comment-published-profile.test.mjs scripts/site/build.test.mjs scripts/site/bubbles.test.mjs scripts/site/avatars.test.mjs src/scripts/claim.test.js src/scripts/field/grouping.test.js src/scripts/field/simulation.test.js",
     "docs:check": "node scripts/ensure-pnpm.mjs && node scripts/docs/check-language.mjs",
     "sheets:export": "node scripts/ensure-pnpm.mjs && node scripts/sheets/export.mjs",
     "sheets:export:dry-run": "node scripts/ensure-pnpm.mjs && node scripts/sheets/export.mjs --dry-run",
     "sheets:sync-people": "node scripts/ensure-pnpm.mjs && node scripts/sheets/sync-people.mjs",
     "sheets:sync-people:dry-run": "node scripts/ensure-pnpm.mjs && node scripts/sheets/sync-people.mjs --dry-run",
     "profiles:create-missing": "node scripts/ensure-pnpm.mjs && node scripts/profiles/create-missing-templates.mjs",
-    "site:build": "node scripts/ensure-pnpm.mjs && node scripts/site/build.mjs",
+    "dev": "node scripts/ensure-pnpm.mjs && astro dev",
+    "preview": "node scripts/ensure-pnpm.mjs && astro preview",
+    "site:data": "node scripts/ensure-pnpm.mjs && node scripts/site/build.mjs",
+    "site:build": "pnpm site:data && astro build",
+    "site:dev-fixture": "node scripts/ensure-pnpm.mjs && node scripts/site/dev-fixture.mjs",
     "data:validate": "node scripts/ensure-pnpm.mjs && node scripts/data/validate.mjs",
     "sheets:init": "node scripts/ensure-pnpm.mjs && node scripts/sheets/init.mjs",
     "sheets:init:dry-run": "node scripts/ensure-pnpm.mjs && node scripts/sheets/init.mjs --dry-run"
   },
+  "dependencies": {
+    "astro": "^5.18.2",
+    "d3-force-3d": "^3.0.6",
+    "gsap": "^3.15.0",
+    "sharp": "^0.35.3",
+    "three": "^0.185.1"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.9.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4"
   }
 }

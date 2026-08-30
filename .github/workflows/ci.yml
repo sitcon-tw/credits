@@ -32,10 +32,13 @@ jobs:
       - name: Check Sheets export plan
         run: pnpm sheets:export:dry-run
 
-      - name: Smoke build static site
+      - name: Smoke build site data
         run: >-
-          pnpm site:build --
+          pnpm site:data --
           --export scripts/site/fixtures/export.json
           --profiles-dir scripts/site/fixtures/profiles
           --site-profiles-dir scripts/site/fixtures/site-profiles
-          --output-dir "$RUNNER_TEMP/site-dist"
+          --skip-avatars
+
+      - name: Smoke build static site
+        run: pnpm exec astro build

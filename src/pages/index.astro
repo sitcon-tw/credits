@@ -1,0 +1,102 @@
+---
+import GtmNoScript from '../components/GtmNoScript.astro';
+import SiteHead from '../components/SiteHead.astro';
+import { BASE } from '../scripts/base.js';
+import '../styles/index.css';
+---
+
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <SiteHead
+      title="SITCON Credits"
+      description="SITCON 歷屆工作人員與講者的公開貢獻紀錄索引，以立體頭像徽章場呈現。"
+    />
+  </head>
+  <body>
+    <GtmNoScript />
+
+    <div id="fieldStage" class="field-stage">
+      <canvas id="fieldCanvas" role="img" aria-label="SITCON 歷屆貢獻者頭像立體分佈圖"></canvas>
+      <div id="fieldLabel" class="field-label" aria-hidden="true"></div>
+    </div>
+
+    <div id="hud" class="hud">
+      <header class="hud-top">
+        <div class="hud-title">
+          <p class="eyebrow">SITCON Credits</p>
+          <h1>貢獻紀錄索引</h1>
+          <p class="lede">拖曳環繞、滾輪縮放，愈靠核心愈大的徽章是最新一屆年會的籌備核心。</p>
+        </div>
+        <div class="stats" aria-label="資料統計">
+          <span class="stat"><strong id="statPeople">-</strong> People</span>
+          <span class="stat"><strong id="statAppearances">-</strong> 貢獻紀錄</span>
+          <span class="stat"><strong id="statEvents">-</strong> 活動</span>
+        </div>
+      </header>
+
+      <section class="hud-tools" aria-label="搜尋與分群">
+        <label class="search-box">
+          <span>搜尋</span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="搜尋名字、活動或組別" />
+        </label>
+
+        <div class="mode-switch" role="group" aria-label="分群方式">
+          <button type="button" data-mode="core" aria-pressed="true">預設</button>
+          <button type="button" data-mode="year" aria-pressed="false">年份</button>
+          <button type="button" data-mode="event" aria-pressed="false">活動</button>
+          <button type="button" data-mode="role" aria-pressed="false">組別</button>
+        </div>
+
+        <div class="hud-filters">
+          <label>
+            <span>年份</span>
+            <select id="yearFilter">
+              <option value="">全部年份</option>
+            </select>
+          </label>
+          <label>
+            <span>活動</span>
+            <select id="seriesFilter">
+              <option value="">全部活動</option>
+            </select>
+          </label>
+          <label>
+            <span>組別</span>
+            <select id="roleFilter">
+              <option value="">全部組別</option>
+            </select>
+          </label>
+        </div>
+
+        <button id="listToggle" type="button" aria-expanded="false" aria-controls="resultList">列表檢視</button>
+      </section>
+
+      <p id="resultCount" class="result-count" aria-live="polite">載入資料中</p>
+
+      <div class="hud-body">
+        <aside id="resultList" class="glass-panel result-list" aria-label="貢獻者列表" hidden></aside>
+        <aside id="personPanel" class="glass-panel person-panel" aria-label="貢獻者詳細資料" hidden></aside>
+      </div>
+
+      <footer class="hud-bottom">
+        <p class="grouping-note">
+          同一 email 雜湊或相鄰年份同名的公開紀錄，在畫面上會合併為同一顆徽章。這只是顯示分群，不是身份連結，canonical
+          貢獻紀錄不受影響。
+        </p>
+        <a class="claim-entry-link" href={`${BASE}/claim.html?claim=1`}>有重複的你？或是要更新資料？這邊請</a>
+      </footer>
+    </div>
+
+    <noscript>
+      <p class="noscript-note">
+        這個頁面需要 JavaScript 才能繪製立體頭像徽章場，請改用
+        <a href={`${BASE}/claim.html`}>列表頁</a>。
+      </p>
+    </noscript>
+
+    <script>
+      import '../scripts/index-page.js';
+    </script>
+  </body>
+</html>

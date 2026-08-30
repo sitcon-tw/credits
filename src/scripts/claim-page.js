@@ -6,6 +6,7 @@ import {
   isClaimUrlTooLong,
   profileRequestIssueUrl,
 } from './claim.js';
+import { BASE } from './base.js';
 
 const state = {
   data: null,
@@ -29,7 +30,6 @@ const state = {
 const elements = {
   pageTitle: document.querySelector('#pageTitle'),
   pageLede: document.querySelector('#pageLede'),
-  claimEntryLink: document.querySelector('#claimEntryLink'),
   searchInput: document.querySelector('#searchInput'),
   yearFilter: document.querySelector('#yearFilter'),
   seriesFilter: document.querySelector('#seriesFilter'),
@@ -79,7 +79,7 @@ init().catch((error) => {
 });
 
 async function init() {
-  const response = await fetch('./assets/site-data.json');
+  const response = await fetch(`${BASE}/assets/site-data.json`);
   if (!response.ok) {
     throw new Error(`無法載入資料：${response.status}`);
   }
@@ -524,9 +524,6 @@ function updateClaimPanel() {
 }
 
 function syncPageMode() {
-  elements.claimEntryLink.hidden = state.claimMode;
-  elements.claimEntryLink.href = claimShareUrl(window.location, []);
-
   if (state.claimMode) {
     document.title = '標記我的貢獻紀錄 - SITCON Credits';
     elements.pageTitle.textContent = '標記我的貢獻紀錄';
@@ -535,9 +532,9 @@ function syncPageMode() {
     return;
   }
 
-  document.title = 'SITCON Credits';
-  elements.pageTitle.textContent = '貢獻紀錄索引';
-  elements.pageLede.textContent = '探索歷屆工作人員、講者與公開貢獻紀錄。';
+  document.title = '瀏覽貢獻紀錄 - SITCON Credits';
+  elements.pageTitle.textContent = '瀏覽貢獻紀錄';
+  elements.pageLede.textContent = '搜尋歷屆工作人員、講者與公開貢獻紀錄。';
 }
 
 function syncViewButtons() {

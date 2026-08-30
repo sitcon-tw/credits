@@ -106,7 +106,7 @@ flowchart TD
   publishedComment -->|是| comment["留言告知 PR 或 issue 可查看 #person 頁面，並關閉 linked issue 或原 issue"]
 ```
 
-`Deploy GitHub Pages` 會在 push 到 `master`、收到 `credits-profiles` 的 `rebuild-pages-from-profiles` dispatch，或手動觸發時執行。它需要 `GOOGLE_SERVICE_ACCOUNT_JSON` repository secret 讀取 canonical Sheet，並從 `credits-profiles` 讀取 contributor profile 與 `site-profiles` 顯示資料。workflow 會產生 `dist/`、上傳 Pages artifact，並交給 GitHub Pages 部署；repository 的 Pages build type 是 GitHub Actions。
+`Deploy GitHub Pages` 會在 push 到 `master`、收到 `credits-profiles` 的 `rebuild-pages-from-profiles` dispatch，或手動觸發時執行。它需要 `GOOGLE_SERVICE_ACCOUNT_JSON` repository secret 讀取 canonical Sheet，並從 `credits-profiles` 讀取 contributor profile 與 `site-profiles` 顯示資料。workflow 會先用 `pnpm site:data` 產生 `public/assets/` 下的資料與頭像圖集，再用 `astro build` 產生 `dist/`、上傳 Pages artifact，並交給 GitHub Pages 部署；repository 的 Pages build type 是 GitHub Actions。
 
 若 deploy 是由 `credits-profiles` profile PR merge 後的 rebuild dispatch 觸發，而且 dispatch payload 可辨識單一 `profiles/<github_username>.json` PR，部署成功後 workflow 會回到該 PR 留言；若 PR body linked 到 profile request issue，也會先回到原 issue 留言，提供 `https://sitcon.org/credits/#person=<github_username>` 讓貢獻者查看公開呈現，再關閉原 issue。claim-only issue 套用成功後也會走同一個 Pages deploy 成功通知，但 payload 只帶原 issue number，不需要建立 profile PR。
 
@@ -114,9 +114,9 @@ profile issue form 產生的 PR body 刻意使用 `Refs #...`，而不是 `Close
 
 `Deploy GitHub Pages` 使用 workflow concurrency 讓連續 profile merge 的 Pages rebuild 收斂到最新一次。較早的 rebuild run 可能被後續 run 取消；這是為了避免短時間重複部署。為了不讓被取消 run 的 profile request issue 遺失收尾，部署成功後的通知步驟除了處理當次 dispatch payload，也會從仍 open 的 `profile-request` issues 找回 linked merged PR，且只在該 PR 修改單一 `profiles/*.json` 時補上同一則已部署 comment 並關閉 linked issue。這個補償掃描以未關閉 issue 為入口，不會遍歷或重寫已關閉的歷史 PR。
 
-Pages 網頁預設只提供公開索引查詢。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)；頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
+Pages 網頁預設只提供公開索引查詢，標記工具放在獨立的 `claim.html`。貢獻者需要請維護者確認哪些項目可能是在記錄自己時，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/claim.html?claim=1)；索引頁收到 `?claim=1` 或 `?claims=` 時會自動轉到同一頁，因此既有分享網址仍然有效。頁面會把選取結果保存在網址中，讓貢獻者直接分享該頁網址。`claims` 參數名稱與 token 格式（`<eventId>/site:<hash>` 或單一 GitHub username）沒有改變，維護者自動化仍以整個網址解析 token。這個 handoff 不會寫入 Google Sheets，也不會讓 profile PR 自動完成身份合併；維護者仍需在 canonical Sheet 中人工確認後，才可調整 `appearances.github_username`。
 
-Pages 前端是公開索引與標記流程的原型凍結版，會繼續透過 GitHub Actions 部署公開輸出。部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用時，仍可依問題性質另外處理；其他前端新功能、介面微調、體驗修補或重新設計期待，請集中到 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，作為後續訪談、設計討論與規劃輸入。
+索引頁的立體徽章場會把同一 `source_person_id` 或相鄰年份同名的公開紀錄畫成同一顆徽章。這個合併只發生在建置產物 `assets/index-data.json` 的顯示層，不會寫回 Google Sheets，也不是身份連結核可。部署流程另外會產生 `assets/avatars-*.webp` 頭像圖集；圖集建置會抓取公開頭像網址，並以 `actions/cache` 保留 `tmp/avatar-cache` 讓後續部署只抓新增網址。抓取失敗的頭像只會讓該顆徽章顯示為純色圓形，不會讓部署失敗。
 
 ## people helper 同步
 

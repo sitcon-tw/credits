@@ -1,35 +1,28 @@
+---
+import GtmNoScript from '../components/GtmNoScript.astro';
+import SiteHead from '../components/SiteHead.astro';
+import { BASE } from '../scripts/base.js';
+import '../styles/claim.css';
+---
+
 <!doctype html>
 <html lang="zh-Hant-TW">
   <head>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-NPVBCDZ');</script>
-    <!-- End Google Tag Manager -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SITCON Credits</title>
-    <link rel="stylesheet" href="./assets/styles.css">
+    <SiteHead
+      title="標記我的貢獻紀錄 — SITCON Credits"
+      description="搜尋歷屆 SITCON 工作人員、講者與公開貢獻紀錄，標記屬於你的紀錄。"
+    />
   </head>
   <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NPVBCDZ"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
+    <GtmNoScript />
     <header class="site-header">
       <div class="header-copy">
         <p class="eyebrow">SITCON Credits</p>
-        <h1 id="pageTitle">貢獻紀錄索引</h1>
-        <p id="pageLede" class="lede">探索歷屆工作人員、講者與公開貢獻紀錄。</p>
+        <h1 id="pageTitle">標記我的貢獻紀錄</h1>
+        <p id="pageLede" class="lede">搜尋歷屆工作人員、講者與公開貢獻紀錄，標記屬於你的紀錄。</p>
       </div>
       <div class="header-side">
-        <a id="claimEntryLink" class="claim-entry-link" href="./?claim=1">有重複的你？或是要更新資料？這邊請</a>
-        <p class="prototype-notice">
-          Prototype 已凍結；前端期待與使用情境請集中到
-          <a href="https://github.com/sitcon-tw/credits/issues/2">需求盤點</a>
-        </p>
+        <a class="claim-entry-link" href={`${BASE}/`}>回到貢獻紀錄索引</a>
         <div class="stats" aria-label="資料統計">
           <div>
             <strong data-stat="people">-</strong>
@@ -51,7 +44,7 @@
       <section class="toolbar" aria-label="篩選">
         <label class="search-box">
           <span>搜尋</span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="姓名、GitHub、活動、組別">
+          <input id="searchInput" type="search" autocomplete="off" placeholder="姓名、GitHub、活動、組別" />
         </label>
 
         <button class="more-filters-btn" id="moreFiltersBtn" type="button" aria-expanded="false" aria-controls="toolbarFilters">
@@ -138,6 +131,8 @@
       </article>
     </template>
 
-    <script type="module" src="./assets/app.js"></script>
+    <script>
+      import '../scripts/claim-page.js';
+    </script>
   </body>
 </html>

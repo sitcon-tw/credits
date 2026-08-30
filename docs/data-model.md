@@ -100,6 +100,19 @@ Google Sheets 是整理、審核與發布前的主要維護介面。若歷屆官
 
 若某筆 appearance 使用 `site:<source_person_id>`，本人日後提出 `profiles/<github_username>.json` PR 時，維護者應人工確認後才把 Sheet 中的 profile reference 改成裸 GitHub username。不要把 `site:` reference 自動轉成 username。
 
+### 索引頁的顯示分群
+
+公開索引頁會把頭像畫成一片立體的徽章場，並在顯示層把兩種公開紀錄合併成同一顆徽章：`source_person_id` 相同的 site profile 紀錄，以及正規化後顯示名稱相同、活動年份相差不超過一年且不屬於同一場活動的 site profile 紀錄。
+
+這個合併只存在於建置產物 `assets/index-data.json`：
+
+- 不會寫回 Google Sheets，`appearances` 的每一列都保持原樣。
+- 不會把公開紀錄連到 GitHub username，也不會把 site 紀錄併入 GitHub-linked profile。
+- 不構成身份連結核可；維護者的人工審核流程完全不變。
+- 頁面上必須明確說明這是顯示分群，讓讀者知道畫面上的一顆徽章不等於一個已確認的身份。
+
+GitHub-linked 與未連結（`appearance`）紀錄一律各自成為單獨的徽章，不會被合併。
+
 ## 隱私與更正
 
 本專案只公開完成貢獻紀錄索引所需的資料，例如活動名稱、年份、角色、當時公開顯示名稱、來源 URL 與 profile 連結狀態。

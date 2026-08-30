@@ -23,14 +23,17 @@ GitHub Pages：https://sitcon.org/credits/
 本地預覽可先用已匯出的 Sheets JSON 與 sibling `credits-profiles` checkout 產生：
 
 ```bash
-pnpm site:build -- --export tmp/sheets-export/export.json
+pnpm site:data -- --export tmp/sheets-export/export.json
+pnpm exec astro build
 ```
 
-這只會建立本機靜態 `dist/` 產物，不會讀取 Google credentials，也不會部署 GitHub Pages。
+`site:data` 產生 `public/assets/` 下的資料與頭像圖集，`astro build` 把頁面打包成 `dist/`。兩者都不會讀取 Google credentials，也不會部署 GitHub Pages。不帶旗標時可用 `pnpm site:build` 一次跑完兩步。
 
-Pages 網頁預設是公開貢獻紀錄查詢介面，不顯示標記工具。過去參與 SITCON 相關活動的夥伴若要請維護者確認哪些項目可能是在記錄自己，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/?claim=1)，選取項目後分享該頁網址。這個流程只收集本人意願與審核線索，不會自動修改 canonical Sheet，也不會自動完成身份連結。
+Pages 網頁預設是公開貢獻紀錄索引：整個視窗是一片立體的頭像徽章場，可以拖曳環繞、滾輪推近，最新一屆年會的籌備核心停在雲團核心且徽章較大，其餘夥伴依角色與累積參與場次散布在外圍。遠處的徽章會隨鏡頭距離淡入頁面底色，切換預設／年份／活動／組別時，整團徽章會流動重組成不同的空間排列（年份是往深處延伸的走廊、活動是傾斜的環、組別是一顆由組別球體組成的球）。標記工具不在索引頁上。過去參與 SITCON 相關活動的夥伴若要請維護者確認哪些項目可能是在記錄自己，可以打開 [標記我的貢獻紀錄](https://sitcon.org/credits/claim.html?claim=1)，選取項目後分享該頁網址；舊的 `https://sitcon.org/credits/?claim=1` 網址會自動轉到同一頁。這個流程只收集本人意願與審核線索，不會自動修改 canonical Sheet，也不會自動完成身份連結。
 
-Pages 前端是公開索引與標記流程的原型凍結版，會繼續作為公開輸出使用，但不再接受零散功能開發、介面微調或體驗修補 PR。若想提供前端期待、想像、問題或使用情境，請集中留言到 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，作為後續訪談、設計討論與規劃輸入。
+索引場上，同一 `source_person_id` 或相鄰年份同名的公開紀錄會合併成同一顆徽章。這是顯示層的分群，方便閱讀，不是身份連結：它不會寫回 Google Sheet，不會把公開紀錄連到 GitHub 帳號，也不會把活動網站紀錄併入 GitHub profile。canonical `appearances` 資料完全不受影響。
+
+前端的期待、想像、問題與使用情境請集中留言到 [Pages 前端需求盤點](https://github.com/sitcon-tw/credits/issues/2)，作為後續訪談、設計討論與規劃輸入。
 
 ## 這個 repo 負責什麼
 
@@ -82,7 +85,8 @@ pnpm sheets:init:dry-run
 pnpm sheets:export:dry-run
 pnpm sheets:sync-people:dry-run
 pnpm profiles:create-missing
-pnpm site:build -- --export tmp/sheets-export/export.json
+pnpm site:data -- --export tmp/sheets-export/export.json --skip-avatars
+pnpm exec astro build
 ```
 
 更多本地工具、需要憑證的 Google Sheets 操作與 GitHub Actions 設定請看 [維護者指南](docs/maintainer-guide.md)。

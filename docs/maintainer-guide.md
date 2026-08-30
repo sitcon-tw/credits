@@ -34,6 +34,42 @@ pnpm data:validate --site-profiles-dir=tmp/credits-profiles/site-profiles
 
 Profile 檔案格式、site profile 檔案格式、`pnpm profiles:validate` 與 `pnpm site-profiles:validate` 由 `credits-profiles` 維護。
 
+### 建立公開網站
+
+```bash
+pnpm site:data -- --export tmp/sheets-export/export.json
+pnpm exec astro build
+```
+
+`site:data` 讀取匯出的 Sheet JSON 與 `credits-profiles` checkout，把三份資料寫進 `public/assets/`：
+
+- `assets/site-data.json`：標記頁使用的完整 people／appearances 資料。
+- `assets/index-data.json`：索引頁徽章場使用的資料，含顯示分群後的節點、大小分數、核心標記與頭像圖集座標。
+- `assets/avatars-*.webp`：2048×2048 頭像圖集，核心與高分節點使用 256px 格、其餘使用 64px 格。頭像圖集最多 4 層，超過會讓建置直接失敗並指出要調整的 shader。
+
+`astro build` 接著把 `src/pages/` 的頁面、`src/scripts/` 的模組與 `public/` 的靜態檔打包成 `dist/`。站台發佈在 `https://sitcon.org/credits/`，因此 `astro.config.mjs` 固定 `base: '/credits'` 與 `build.format: 'file'`，讓 `claim.html` 保持在網址根層。
+
+`pnpm site:build` 會依序跑完這兩步，但不接受旗標；要傳旗標請直接用 `site:data`。開發時可用 `pnpm dev` 起 Astro dev server，`pnpm preview` 預覽 `dist/`。
+
+頭像圖集需要抓取公開頭像網址。可用的旗標：
+
+```bash
+pnpm site:data -- --skip-avatars
+pnpm site:data -- --avatar-cache-dir tmp/avatar-cache
+```
+
+`--skip-avatars` 完全不連線，徽章會顯示為純色圓形，適合離線或 CI smoke build。抓取結果會以網址 sha256 快取在 `--avatar-cache-dir`（預設 `tmp/avatar-cache`），因此重複建置只抓新增的網址。個別頭像抓取或解碼失敗只會讓該顆徽章少一張圖，不會讓建置失敗。
+
+要在真實資料量下開發前端，可以下載已公開的輸出重建本機 fixture：
+
+```bash
+pnpm site:dev-fixture
+pnpm site:data -- --export tmp/dev/export.json --profiles-dir tmp/dev/profiles --site-profiles-dir tmp/dev/site-profiles
+pnpm exec astro build
+```
+
+`site:dev-fixture` 只讀取公開網站上的 `site-data.json`，不需要 Google credentials，產物全部落在 `tmp/`。
+
 ## 需要憑證的 Google Sheets 操作
 
 需要操作 Google Sheets 時，維護者需先將 service account JSON 放在不會被 commit 的本機路徑，並設定：
@@ -54,13 +90,13 @@ LLM agents 不應讀取 service account credentials，也不應在沒有明確�
 
 | Workflow | 觸發方式 | 職責 |
 | --- | --- | --- |
-| `CI` | pull request、`master` push、手動觸發 | 執行 `pnpm test`、`pnpm sheets:init:dry-run`、`pnpm sheets:export:dry-run`。 |
+| `CI` | pull request、`master` push、手動觸發 | 執行 `pnpm test`、`pnpm sheets:init:dry-run`、`pnpm sheets:export:dry-run`，並以 fixture 執行 `pnpm site:data -- --skip-avatars`（不連線）與 `pnpm exec astro build` smoke build。 |
 | `Export Sheets data` | 手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、執行含 site profile 檢查的 `pnpm data:validate`、上傳 artifact，並直接 commit 缺少的空白 profile template 到 `credits-profiles`。 |
 | `Sync people helper` | `credits-profiles` repository dispatch、手動觸發 | 將 `credits-profiles` 的 profile username 與 display name 同步到 Google Sheets 的 `people` helper sheet。 |
 | `Review profile PR` | `credits-profiles` repository dispatch | 匯出 canonical Google Sheet，確認 profile PR 的 username 是否已出現在 `appearances.github_username`，符合條件時核准並 squash merge，不符合時留言提醒維護者。 |
 | `Review profile claim issue` | `credits-profiles` claim-only issue dispatch | 當 profile issue 產出的 JSON 沒有變更但含 `site:` 標記網址時，匯出 canonical Google Sheet，在原 issue 建立或更新維護者確認 comment。 |
 | `Apply profile claims` | `credits-profiles` PR 或 issue comment checkbox dispatch、手動觸發 | 維護者確認標記網址後，重新驗證 confirmation comment 與 canonical Sheet，將仍符合的 `site:` appearances 改成該 GitHub username；PR mode 會重跑 profile PR review，issue mode 會觸發 Pages rebuild。workflow 也會掃描近期已勾選的 confirmation comments，補償被 GitHub Actions skip 或 cancel 而沒有完成 apply 或後續 dispatch 的項目。 |
-| `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、建立 `dist/`，部署到 GitHub Pages；profile PR 或 claim-only issue 觸發的部署成功後，回到對應 PR 或 issue 留言告知公開頁面連結，並關閉 linked issue 或原 issue。 |
+| `Deploy GitHub Pages` | `master` push、profile rebuild dispatch、手動觸發 | 匯出 canonical Google Sheet、checkout `credits-profiles`、驗證資料與 site profile references、還原 `tmp/avatar-cache`、建立含頭像圖集的 `dist/`，部署到 GitHub Pages；profile PR 或 claim-only issue 觸發的部署成功後，回到對應 PR 或 issue 留言告知公開頁面連結，並關閉 linked issue 或原 issue。 |
 
 profile issue form 產生的 PR 會用 `Refs #...` 連回原 issue，而不是使用 GitHub 會在 PR merge 時自動關 issue 的 close keyword。profile PR merge 只是 `credits-profiles` 的 profile JSON 已合併，還要等 `credits` 重新匯出 canonical Sheet、重建並部署 Pages 後，公開頁面才可確認。issue 的完成狀態因此由 `Deploy GitHub Pages` 的部署後 comment/close 控制；若連續 profile merge 讓較早的 Pages run 被 concurrency 取消，後續成功部署只會掃描仍 open 的 `profile-request` issues，再尋找對應已 merge 的 profile PR 來補齊被取消 run 遺失的 issue 收尾；已關閉的 PR 或 issue 不會被當成補償掃描目標。
 
@@ -95,6 +131,6 @@ confirmation comment 本身是可恢復的確認意圖；`credits-profiles` 的 
 
 GitHub Pages 使用 GitHub Actions 作為部署來源；`Deploy GitHub Pages` workflow 會負責匯出 canonical Sheet、驗證資料、建立靜態網站並部署。若 Pages 設定、domain、repository secret 或 Google Workspace 權限異動，請同時檢查 `.github/workflows/pages.yml` 與 [自動化流程](workflows.md) 的描述。
 
-Pages 前端是公開索引與標記流程的原型凍結版。維護者仍應處理部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用等例外；一般前端功能、介面微調、體驗修補或重新設計期待，請導向 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，不要直接在原型上收斂零散 PR。
+Pages 前端是 Astro 5 站台，包含公開索引頁（three.js 立體頭像徽章場、搜尋、分群、詳細資料面板）與獨立的標記頁 `claim.html`。維護者仍應優先處理部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用等問題；一般前端功能、介面微調、體驗修補或重新設計期待，請導向 [Pages 前端需求盤點](https://github.com/sitcon-tw/credits/issues/2)，先收斂需求再動介面。
 
 workflow 檔案存在不等於外部設定都已生效。文件若提到跨 repo commit、profile PR 自動審查、Google Sheets 寫入、branch ruleset 或 GitHub App 權限，應明確區分「repo 內已有 workflow」與「GitHub / Google Workspace 設定已確認」。若未來新增 Forms、public search index、資料 schema 或新的跨 repo 自動化，請先更新 [資料模型與治理](data-model.md) 和 [自動化流程](workflows.md)。

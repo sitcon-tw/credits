@@ -1,12 +1,17 @@
-import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+import { buildAvatarAtlases } from './avatars.mjs';
+import { attachTiles, buildBubbleData } from './bubbles.mjs';
 
 const DEFAULT_EXPORT_PATH = 'tmp/sheets-export/export.json';
 const DEFAULT_PROFILES_DIR = '../credits-profiles/profiles';
 const DEFAULT_SITE_PROFILES_DIR = '../credits-profiles/site-profiles';
-const DEFAULT_SITE_DIR = 'site';
-const DEFAULT_OUTPUT_DIR = 'dist';
+const DEFAULT_ASSETS_DIR = 'public/assets';
+const DEFAULT_AVATAR_CACHE_DIR = 'tmp/avatar-cache';
+// The badge shader in src/scripts/field/badges.js binds one sampler per atlas layer.
+const MAX_ATLAS_LAYERS = 4;
 
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
@@ -16,16 +21,31 @@ export async function main(argv = process.argv.slice(2)) {
     readSiteProfiles(options.siteProfilesDir),
   ]);
   const siteData = buildSiteData(payload, { profiles, siteProfiles });
+  const bubbleData = buildBubbleData(siteData);
+  const atlas = await buildAvatarAtlases(bubbleData.nodes, {
+    cacheDir: options.avatarCacheDir,
+    skip: options.skipAvatars,
+  });
+  attachTiles(bubbleData.nodes, atlas.tiles);
+  bubbleData.atlas.files = atlas.files.map((file) => file.name);
 
-  await mkdir(path.join(options.outputDir, 'assets'), { recursive: true });
-  await cp(path.join(options.siteDir, 'index.html'), path.join(options.outputDir, 'index.html'));
-  await cp(path.join(options.siteDir, 'styles.css'), path.join(options.outputDir, 'assets', 'styles.css'));
-  await cp(path.join(options.siteDir, 'app.js'), path.join(options.outputDir, 'assets', 'app.js'));
-  await cp(path.join(options.siteDir, 'claim.js'), path.join(options.outputDir, 'assets', 'claim.js'));
-  await writeFile(path.join(options.outputDir, 'assets', 'site-data.json'), `${JSON.stringify(siteData, null, 2)}\n`);
+  if (atlas.files.length > MAX_ATLAS_LAYERS) {
+    throw new Error(
+      `Avatar atlas needs ${atlas.files.length} layers but the badge shader supports ${MAX_ATLAS_LAYERS}; ` +
+        'raise the sampler count in src/scripts/field/badges.js.',
+    );
+  }
+
+  await mkdir(options.assetsDir, { recursive: true });
+  await writeFile(path.join(options.assetsDir, 'site-data.json'), `${JSON.stringify(siteData, null, 2)}\n`);
+  await writeFile(path.join(options.assetsDir, 'index-data.json'), `${JSON.stringify(bubbleData)}\n`);
+  for (const file of atlas.files) {
+    await writeFile(path.join(options.assetsDir, file.name), file.buffer);
+  }
 
   console.log(
-    `Built ${options.outputDir}: ${siteData.people.length} profile cards, ${siteData.appearances.length} appearances, ${siteData.events.length} events.`,
+    `Built ${options.assetsDir}: ${siteData.people.length} profile cards, ${siteData.appearances.length} appearances, ` +
+      `${siteData.events.length} events, ${bubbleData.nodes.length} bubbles, ${atlas.tiles.size} avatar tiles (${atlas.misses} missing).`,
   );
 }
 
@@ -34,8 +54,9 @@ export function parseArgs(argv) {
     exportPath: DEFAULT_EXPORT_PATH,
     profilesDir: DEFAULT_PROFILES_DIR,
     siteProfilesDir: DEFAULT_SITE_PROFILES_DIR,
-    siteDir: DEFAULT_SITE_DIR,
-    outputDir: DEFAULT_OUTPUT_DIR,
+    assetsDir: DEFAULT_ASSETS_DIR,
+    avatarCacheDir: DEFAULT_AVATAR_CACHE_DIR,
+    skipAvatars: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -70,22 +91,26 @@ export function parseArgs(argv) {
       options.siteProfilesDir = readInlineArg(arg, '--site-profiles-dir');
       continue;
     }
-    if (arg === '--site-dir') {
-      options.siteDir = readNextArg(argv, index, '--site-dir');
+    if (arg === '--assets-dir') {
+      options.assetsDir = readNextArg(argv, index, '--assets-dir');
       index += 1;
       continue;
     }
-    if (arg.startsWith('--site-dir=')) {
-      options.siteDir = readInlineArg(arg, '--site-dir');
+    if (arg.startsWith('--assets-dir=')) {
+      options.assetsDir = readInlineArg(arg, '--assets-dir');
       continue;
     }
-    if (arg === '--output-dir') {
-      options.outputDir = readNextArg(argv, index, '--output-dir');
+    if (arg === '--avatar-cache-dir') {
+      options.avatarCacheDir = readNextArg(argv, index, '--avatar-cache-dir');
       index += 1;
       continue;
     }
-    if (arg.startsWith('--output-dir=')) {
-      options.outputDir = readInlineArg(arg, '--output-dir');
+    if (arg.startsWith('--avatar-cache-dir=')) {
+      options.avatarCacheDir = readInlineArg(arg, '--avatar-cache-dir');
+      continue;
+    }
+    if (arg === '--skip-avatars') {
+      options.skipAvatars = true;
       continue;
     }
     throw new Error(`Unknown argument: ${arg}`);
