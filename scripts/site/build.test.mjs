@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
 
-import { buildSiteData } from './build.mjs';
+import { buildSiteData, main } from './build.mjs';
 
 function exportPayload() {
   return {
@@ -200,4 +203,31 @@ test('buildSiteData aggregates all appearances into people by profile reference'
     'EVENT-B',
     'EVENT-A',
   ]);
+});
+
+test('site build publishes homepage metadata, a homepage-only sitemap, and the sharing image', async (t) => {
+  const outputDir = await mkdtemp(path.join(tmpdir(), 'sitcon-credits-site-'));
+  t.after(() => rm(outputDir, { recursive: true, force: true }));
+
+  await main([
+    '--export', 'scripts/site/fixtures/export.json',
+    '--profiles-dir', 'scripts/site/fixtures/profiles',
+    '--site-profiles-dir', 'scripts/site/fixtures/site-profiles',
+    '--output-dir', outputDir,
+  ]);
+
+  const html = await readFile(path.join(outputDir, 'index.html'), 'utf8');
+  const sitemap = await readFile(path.join(outputDir, 'sitemap.xml'), 'utf8');
+  const canonical = 'https://sitcon.org/credits/';
+  assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]+)">/g)].map((match) => match[1]), [canonical]);
+  assert.deepEqual([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]), [canonical]);
+  assert.equal(html.match(/<meta property="og:url" content="([^"]+)">/)[1], canonical);
+
+  const imageUrl = html.match(/<meta property="og:image" content="([^"]+)">/)[1];
+  assert.equal(imageUrl, `${canonical}assets/social-preview.png`);
+  assert.equal(html.match(/<meta name="twitter:image" content="([^"]+)">/)[1], imageUrl);
+  const image = await readFile(path.join(outputDir, 'assets', 'social-preview.png'));
+  assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(image.readUInt32BE(16), Number(html.match(/<meta property="og:image:width" content="(\d+)">/)[1]));
+  assert.equal(image.readUInt32BE(20), Number(html.match(/<meta property="og:image:height" content="(\d+)">/)[1]));
 });

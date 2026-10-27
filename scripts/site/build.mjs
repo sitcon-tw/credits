@@ -19,9 +19,11 @@ export async function main(argv = process.argv.slice(2)) {
 
   await mkdir(path.join(options.outputDir, 'assets'), { recursive: true });
   await cp(path.join(options.siteDir, 'index.html'), path.join(options.outputDir, 'index.html'));
+  await cp(path.join(options.siteDir, 'sitemap.xml'), path.join(options.outputDir, 'sitemap.xml'));
   await cp(path.join(options.siteDir, 'styles.css'), path.join(options.outputDir, 'assets', 'styles.css'));
   await cp(path.join(options.siteDir, 'app.js'), path.join(options.outputDir, 'assets', 'app.js'));
   await cp(path.join(options.siteDir, 'claim.js'), path.join(options.outputDir, 'assets', 'claim.js'));
+  await cp(path.join(options.siteDir, 'social-preview.png'), path.join(options.outputDir, 'assets', 'social-preview.png'));
   await writeFile(path.join(options.outputDir, 'assets', 'site-data.json'), `${JSON.stringify(siteData, null, 2)}\n`);
 
   console.log(

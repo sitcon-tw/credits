@@ -57,6 +57,9 @@ const elements = {
   statEvents: document.querySelector('[data-stat="events"]'),
 };
 
+const defaultPageTitle = document.title;
+const defaultPageLede = elements.pageLede.textContent;
+
 const STANDARD_LINK_LABELS = new Map([
   ['github', 'GitHub'],
   ['gitlab', 'GitLab'],
@@ -535,9 +538,9 @@ function syncPageMode() {
     return;
   }
 
-  document.title = 'SITCON Credits';
+  document.title = defaultPageTitle;
   elements.pageTitle.textContent = '貢獻紀錄索引';
-  elements.pageLede.textContent = '探索歷屆工作人員、講者與公開貢獻紀錄。';
+  elements.pageLede.textContent = defaultPageLede;
 }
 
 function syncViewButtons() {
