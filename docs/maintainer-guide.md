@@ -95,6 +95,12 @@ confirmation comment 本身是可恢復的確認意圖；`credits-profiles` 的 
 
 GitHub Pages 使用 GitHub Actions 作為部署來源；`Deploy GitHub Pages` workflow 會負責匯出 canonical Sheet、驗證資料、建立靜態網站並部署。若 Pages 設定、domain、repository secret 或 Google Workspace 權限異動，請同時檢查 `.github/workflows/pages.yml` 與 [自動化流程](workflows.md) 的描述。
 
+搜尋與分享的目標是讓讀者找到專案及查詢入口，不以增加個別人物的搜尋曝光為目標。首頁的搜尋與分享資訊維護在 `site/index.html`，以介紹 SITCON Credits 的用途與資料範圍為主。canonical 與分享預覽網址統一使用 `https://sitcon.org/credits/`；`site/sitemap.xml` 只列首頁，不列人物詳情或標記網址。`site:build` 會將 sitemap 與分享圖一併放入 `dist/`。
+
+部署後，可透過 Google Search Console 提交 `https://sitcon.org/credits/sitemap.xml`，或由 SITCON 主站維護者將這個網址加入根目錄 `https://sitcon.org/robots.txt` 的 `Sitemap:` 宣告。本 repo 不管理主站的 robots.txt；放在 `/credits/robots.txt` 的檔案不能取代根目錄設定。若要在 Search Console 的 [Sitemaps 報表](https://support.google.com/webmasters/answer/7451001) 追蹤抓取狀態，仍須在該報表提交 sitemap；首頁收錄狀態則使用網址審查工具確認。
+
+分享圖原稿為 `site/social-preview.svg`，發布檔為 `site/social-preview.png`。修改原稿後可用 Inkscape 匯出：`inkscape site/social-preview.svg --export-filename=site/social-preview.png`，並確認圖片尺寸為 1200 × 630、文字沒有缺字或裁切。PNG 隨 repo 保存，網站建置不需要 Inkscape。
+
 Pages 前端是公開索引與標記流程的原型凍結版。維護者仍應處理部署失敗、資料安全或隱私風險、公開資料明顯錯誤、既有必要流程無法使用等例外；一般前端功能、介面微調、體驗修補或重新設計期待，請導向 [Pages 前端重新設計需求盤點](https://github.com/sitcon-tw/credits/issues/2)，不要直接在原型上收斂零散 PR。
 
 workflow 檔案存在不等於外部設定都已生效。文件若提到跨 repo commit、profile PR 自動審查、Google Sheets 寫入、branch ruleset 或 GitHub App 權限，應明確區分「repo 內已有 workflow」與「GitHub / Google Workspace 設定已確認」。若未來新增 Forms、public search index、資料 schema 或新的跨 repo 自動化，請先更新 [資料模型與治理](data-model.md) 和 [自動化流程](workflows.md)。
