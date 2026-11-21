@@ -23,6 +23,8 @@ export async function main(argv = process.argv.slice(2)) {
   await cp(path.join(options.siteDir, 'styles.css'), path.join(options.outputDir, 'assets', 'styles.css'));
   await cp(path.join(options.siteDir, 'app.js'), path.join(options.outputDir, 'assets', 'app.js'));
   await cp(path.join(options.siteDir, 'claim.js'), path.join(options.outputDir, 'assets', 'claim.js'));
+  await cp(path.join(options.siteDir, 'board.js'), path.join(options.outputDir, 'assets', 'board.js'));
+  await cp(path.join(options.siteDir, 'theme.js'), path.join(options.outputDir, 'assets', 'theme.js'));
   await cp(path.join(options.siteDir, 'social-preview.png'), path.join(options.outputDir, 'assets', 'social-preview.png'));
   await writeFile(path.join(options.outputDir, 'assets', 'site-data.json'), `${JSON.stringify(siteData, null, 2)}\n`);
 

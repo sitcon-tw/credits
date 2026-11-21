@@ -9,6 +9,16 @@
     })(window,document,'script','dataLayer','GTM-NPVBCDZ');</script>
     <!-- End Google Tag Manager -->
     <meta charset="utf-8">
+    <script>
+      // The theme is the visitor's choice, else the OS setting. Set before the first paint.
+      (function () {
+        var stored = null;
+        try { stored = localStorage.getItem('credits-theme'); } catch (error) {}
+        document.documentElement.dataset.theme = stored === 'light' || stored === 'dark'
+          ? stored
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SITCON 貢獻紀錄｜歷屆工作人員與講者 — SITCON Credits</title>
     <meta name="description" content="查詢 SITCON 年會、SITCON Camp 等活動歷年的工作人員與講者紀錄，依姓名、活動及組別探索公開貢獻，並追溯原始資料來源。">
@@ -29,6 +39,11 @@
     <meta name="twitter:description" content="查詢 SITCON 年會、SITCON Camp 等活動歷年的工作人員與講者紀錄，依姓名、活動及組別探索公開貢獻，並追溯原始資料來源。">
     <meta name="twitter:image" content="https://sitcon.org/credits/assets/social-preview.png">
     <meta name="twitter:image:alt" content="SITCON Credits 貢獻紀錄：歷屆工作人員與講者，公開紀錄、可追溯來源。">
+    <meta name="theme-color" content="#efe8dd" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1d2227" media="(prefers-color-scheme: dark)">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@400..900&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="./assets/styles.css">
   </head>
   <body>
@@ -36,18 +51,27 @@
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NPVBCDZ"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
+    <div class="board" data-board>
+      <canvas aria-hidden="true"></canvas>
+      <div class="board-bar">
+        <div class="theme-toggle" role="group" aria-label="顏色主題">
+          <button type="button" aria-label="淺色主題" aria-pressed="false" data-theme-set="light">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+          <button type="button" aria-label="深色主題" aria-pressed="false" data-theme-set="dark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="board-column" aria-hidden="true"></div>
+    </div>
     <header class="site-header">
       <div class="header-copy">
-        <p class="eyebrow">SITCON Credits</p>
         <h1 id="pageTitle">貢獻紀錄索引</h1>
         <p id="pageLede" class="lede">查詢 SITCON 年會、SITCON Camp 等活動歷年的工作人員與講者紀錄，回顧公開貢獻並追溯原始來源。</p>
       </div>
       <div class="header-side">
         <a id="claimEntryLink" class="claim-entry-link" href="./?claim=1">有重複的你？或是要更新資料？這邊請</a>
-        <p class="prototype-notice">
-          Prototype 已凍結；前端期待與使用情境請集中到
-          <a href="https://github.com/sitcon-tw/credits/issues/2">需求盤點</a>
-        </p>
         <div class="stats" aria-label="資料統計">
           <div>
             <strong data-stat="people">-</strong>
@@ -157,5 +181,7 @@
     </template>
 
     <script type="module" src="./assets/app.js"></script>
+    <script type="module" src="./assets/board.js"></script>
+    <script type="module" src="./assets/theme.js"></script>
   </body>
 </html>
