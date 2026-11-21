@@ -1,7 +1,24 @@
 /* SITCON Credits — visual language follows the superfile website design system:
      box     a 1px `box` border and no fill (panes, inputs, buttons)
-     screen  the `term-bg` fill and no border (avatars without image)
-   A fill on the page means "active" or "under the cursor". */
+   Hover is a soft ink tint; a selected option is a soft SITCON-green tint. Both themes use
+   the same rules, so nothing flips between a dark and a light block under the pointer. */
+
+/* LINE Seed TW (LY Corporation, SIL OFL 1.1), self-hosted, unmodified: see assets/fonts/OFL.txt. */
+@font-face {
+  font-family: "LINE Seed TW";
+  src: url("./fonts/LINESeedTW_OTF_Rg.woff2") format("woff2");
+  font-weight: 100 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LINE Seed TW";
+  src: url("./fonts/LINESeedTW_OTF_Bd.woff2") format("woff2");
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light dark;
@@ -17,7 +34,17 @@
   --amber-text: light-dark(#85550f, #f2bd74);
   --focus: light-dark(#2c6569, #76abae);
   --selection: light-dark(#c6dcda, #2e4a4d);
-  --claimed-bg: light-dark(rgba(119, 181, 90, 0.16), rgba(119, 181, 90, 0.16));
+  --claimed-bg: color-mix(in srgb, var(--signal) 14%, transparent);
+  --hover-bg: color-mix(in srgb, var(--ink) 7%, transparent);
+  --selected-bg: color-mix(in srgb, var(--signal) 24%, transparent);
+  --surface: light-dark(#e6ded1, #262c33);
+  --ease: 160ms ease;
+
+  /* The dot board at the top follows the theme. */
+  --board-bg: light-dark(#e3dbcd, #303841);
+  --board-ink: light-dark(#303841, #efe8dd);
+  --board-muted: light-dark(#59626b, #a3abb2);
+  --board-line: light-dark(#bfb4a3, #4e5863);
 
   --term-bg: #303841;
   --term-ink: #efe8dd;
@@ -33,8 +60,8 @@
   --content-max: 1320px;
   --gutter: clamp(16px, 4vw, 32px);
 
-  --font-sans: "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", "Noto Sans TC", "PingFang TC", ui-monospace, monospace;
+  --font-sans: "LINE Seed TW", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "LINE Seed TW", "PingFang TC", ui-monospace, monospace;
   --font-dot: "Doto", "IBM Plex Mono", monospace;
 }
 
@@ -86,25 +113,22 @@ select {
   outline-offset: 3px;
 }
 
-/* Links: reverse video on hover. */
+/* Links: the underline thickens and turns green on hover. */
 .claim-entry-link,
 .source-link {
-  margin: 0 -0.12em;
-  padding: 0 0.12em;
-  border-radius: 3px;
   color: var(--teal-text);
   text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
+  text-underline-offset: 0.22em;
+  transition: color var(--ease), text-decoration-color var(--ease);
 }
 
 .claim-entry-link:hover,
 .source-link:hover {
-  background: var(--ink);
-  color: var(--bg);
-  text-decoration: none;
+  color: var(--signal-text);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
 }
 
 /* ── Board: the dot-matrix "SITCON" across the top (site/board.js) ────── */
@@ -115,7 +139,7 @@ select {
   --board-pad: 64px;
   position: relative;
   overflow: hidden;
-  background: var(--term-bg);
+  background: var(--board-bg);
 }
 
 .board canvas {
@@ -154,14 +178,14 @@ select {
 }
 
 .theme-toggle button:focus-visible {
-  outline-color: var(--term-signal);
+  outline-color: var(--signal);
 }
 
 .theme-toggle {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--term-line);
+  border: 1px solid var(--board-line);
   border-radius: var(--radius-pill);
 }
 
@@ -174,17 +198,18 @@ select {
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--term-muted);
+  color: var(--board-muted);
   cursor: pointer;
+  transition: background-color var(--ease), color var(--ease);
 }
 
 .theme-toggle button:hover {
-  color: var(--term-ink);
+  color: var(--board-ink);
 }
 
 .theme-toggle button[aria-pressed="true"] {
-  background: var(--term-ink);
-  color: var(--term-bg);
+  background: color-mix(in srgb, var(--board-ink) 14%, transparent);
+  color: var(--board-ink);
 }
 
 .theme-toggle svg {
@@ -242,6 +267,10 @@ h1::after {
   font-size: 19px;
   line-height: 1.6;
   text-wrap: pretty;
+}
+
+.lede:empty {
+  display: none;
 }
 
 .header-side {
@@ -363,6 +392,154 @@ select:focus-visible {
   outline-offset: 3px;
 }
 
+input,
+select {
+  transition: border-color var(--ease), background-color var(--ease);
+}
+
+input:hover,
+select:hover {
+  border-color: var(--ink-muted);
+}
+
+/* ── Styled dropdown (site/select.js); the native select stays as the source of truth ── */
+.select {
+  position: relative;
+}
+
+.select-native {
+  display: none;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 40px 0 14px;
+  border: 1px solid var(--box);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--ease), background-color var(--ease);
+}
+
+.select-trigger::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--ink-muted);
+  border-bottom: 1.5px solid var(--ink-muted);
+  translate: 0 -70%;
+  rotate: 45deg;
+  transition: rotate var(--ease), translate var(--ease);
+}
+
+.select-trigger:hover {
+  border-color: var(--ink-muted);
+  background: var(--hover-bg);
+}
+
+.select.is-open .select-trigger {
+  border-color: var(--signal);
+}
+
+.select.is-open .select-trigger::after {
+  translate: 0 -25%;
+  rotate: 225deg;
+}
+
+/* Inside a <label>, so undo the label-caption rule (`label span`). */
+label .select-value {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  max-height: min(320px, 60vh);
+  margin: 0;
+  padding: 5px;
+  overflow-y: auto;
+  border: 1px solid var(--box);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 18%, transparent);
+  list-style: none;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  animation: select-in 120ms ease-out;
+}
+
+.select-menu:focus {
+  outline: none;
+}
+
+@keyframes select-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-menu {
+    animation: none;
+  }
+}
+
+.select-menu [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* A fixed-width slot on the left holds the check mark, so the labels line up. */
+.select-menu [role="option"]::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  color: var(--signal-text);
+  font: 600 14px/1 var(--font-mono);
+}
+
+.select-menu [role="option"].is-active {
+  background: var(--hover-bg);
+}
+
+.select-menu [role="option"][aria-selected="true"] {
+  background: var(--selected-bg);
+  font-weight: 600;
+}
+
+.select-menu [role="option"][aria-selected="true"]::before {
+  content: "✓";
+}
+
 .segmented-control {
   display: grid;
   gap: 4px;
@@ -391,15 +568,18 @@ select:focus-visible {
   font: 500 14px/1 var(--font-mono);
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color var(--ease), color var(--ease);
 }
 
 .segmented-control button:hover {
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
 .segmented-control button.is-active {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--selected-bg);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .result-meta {
@@ -477,15 +657,13 @@ select:focus-visible {
   font: 500 15px/1 var(--font-mono);
   white-space: nowrap;
   cursor: pointer;
-  transition: 80ms steps(1);
-  transition-property: background-color, color, border-color;
+  transition: background-color var(--ease), color var(--ease), border-color var(--ease);
 }
 
 .claim-actions button[aria-pressed="true"],
 .claim-actions button:not(:disabled):hover {
   border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--hover-bg);
 }
 
 .claim-actions button:disabled {
@@ -501,9 +679,9 @@ select:focus-visible {
 }
 
 .claim-actions .claim-next-action.is-ready:hover {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 82%, var(--ink));
+  color: var(--term-bg);
 }
 
 .claim-panel .claim-status {
@@ -536,12 +714,12 @@ select:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color var(--ease), border-color var(--ease);
 }
 
 .claim-selection-item:hover {
   border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--hover-bg);
 }
 
 .claim-panel .claim-notice {
@@ -570,20 +748,21 @@ select:focus-visible {
   background: transparent;
   color: var(--ink);
   cursor: pointer;
-  transition: 80ms steps(1);
-  transition-property: background-color, color, border-color;
+  transition: background-color var(--ease), border-color var(--ease);
 }
 
 .person-card:hover,
 .person-card:focus-visible {
-  background: var(--ink);
-  color: var(--bg);
+  border-color: var(--line);
+  background: var(--hover-bg);
 }
 
-.person-card:hover .person-note,
-.person-card:focus-visible .person-note {
-  color: inherit;
-  opacity: 0.78;
+.person-card .avatar {
+  transition: border-color var(--ease);
+}
+
+.person-card:hover .avatar {
+  border-color: var(--signal);
 }
 
 .person-card.is-claim-mode,
@@ -599,7 +778,7 @@ select:focus-visible {
 
 .person-card.is-claimed:hover,
 .list-row.is-claimed:hover {
-  background: var(--ink);
+  background: color-mix(in srgb, var(--signal) 22%, transparent);
 }
 
 .person-card.is-unclaimable,
@@ -617,6 +796,11 @@ select:focus-visible {
   color: inherit;
   font: 500 14px/1 var(--font-mono);
   cursor: pointer;
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease);
+}
+
+.claim-toggle:not(:disabled):hover {
+  background: var(--hover-bg);
 }
 
 .claim-toggle[aria-pressed="true"] {
@@ -636,10 +820,10 @@ select:focus-visible {
   width: 96px;
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid var(--box);
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: var(--term-bg);
-  color: var(--term-signal);
+  background: var(--surface);
+  color: var(--signal-text);
   font: 600 1.5rem/1 var(--font-mono);
   letter-spacing: -0.02em;
 }
@@ -691,8 +875,7 @@ select:focus-visible {
   color: var(--ink);
   text-align: left;
   cursor: pointer;
-  transition: 80ms steps(1);
-  transition-property: background-color, color;
+  transition: background-color var(--ease);
 }
 
 .list-row:last-child {
@@ -701,19 +884,12 @@ select:focus-visible {
 
 .list-row:hover,
 .list-row:focus-visible {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--hover-bg);
   outline-offset: -3px;
 }
 
-.list-row:hover :is(.list-main span, .list-summary, .role-chip),
-.list-row:focus-visible :is(.list-main span, .list-summary, .role-chip) {
-  color: inherit;
-}
-
-.list-row:hover .role-chip,
-.list-row:focus-visible .role-chip {
-  border-color: currentColor;
+.list-row:hover .list-main strong {
+  color: var(--signal-text);
 }
 
 .list-row .avatar {
@@ -806,14 +982,12 @@ dialog::backdrop {
   color: var(--ink);
   font: 400 1.4rem/1 var(--font-mono);
   cursor: pointer;
-  transition: 80ms steps(1);
-  transition-property: background-color, color, border-color;
+  transition: background-color var(--ease), border-color var(--ease);
 }
 
 .close-button:hover {
   border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--hover-bg);
 }
 
 .detail-head {
@@ -858,14 +1032,13 @@ dialog::backdrop {
 
 .links a {
   color: var(--teal-text);
-  transition: 80ms steps(1);
-  transition-property: background-color, color, border-color;
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease);
 }
 
 .links a:hover {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
+  border-color: var(--signal);
+  background: var(--claimed-bg);
+  color: var(--signal-text);
 }
 
 .bio {
@@ -1041,9 +1214,8 @@ dialog::backdrop {
   }
 
   .more-filters-btn[aria-expanded="true"] {
-    border-color: var(--ink);
-    background: var(--ink);
-    color: var(--bg);
+    border-color: var(--signal);
+    background: var(--selected-bg);
   }
 
   .view-icon-switch {
@@ -1065,11 +1237,12 @@ dialog::backdrop {
     background: transparent;
     color: var(--ink-muted);
     cursor: pointer;
+    transition: background-color var(--ease), color var(--ease);
   }
 
   .view-icon-switch button.is-active {
-    background: var(--ink);
-    color: var(--bg);
+    background: var(--selected-bg);
+    color: var(--ink);
   }
 
   /* Collapsible filters panel */

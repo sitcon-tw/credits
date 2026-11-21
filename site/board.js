@@ -10,10 +10,18 @@ const LETTER_COLS = 96; // the lettering spans the content column in this many c
 const LETTER_ROWS = 22; // must match --board-rows / --board-cols in styles.css
 const PAD_ROWS = 2; // empty rows above and below the lettering
 
-const INK = [239, 232, 221]; // term-ink
-const DIM = [78, 88, 99]; // term-line
-const HOT = [119, 181, 90]; // SITCON green (#77b55a)
-const LOGO = HOT; // logo dots rest in SITCON green and spark to paper
+// Dot colours per theme; the board's background comes from --board-bg in styles.css.
+const PALETTES = {
+  dark: { ink: [239, 232, 221], dim: [78, 88, 99], hot: [119, 181, 90], logo: [119, 181, 90] },
+  light: { ink: [48, 56, 65], dim: [170, 160, 146], hot: [92, 158, 62], logo: [92, 158, 62] },
+};
+let palette = PALETTES.dark;
+
+function currentPalette() {
+  const theme = document.documentElement.dataset.theme
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  return PALETTES[theme] || PALETTES.dark;
+}
 const RADIUS = [0.09, 0.2, 0.31, 0.4]; // dot radius per coverage level, in cells
 const DENSITY = 1.5; // canvas pixels per CSS pixel, at most
 const SPARK_EVERY = 110; // a new lettering dot lights up this often, in milliseconds
@@ -157,7 +165,9 @@ export function mountBoard(board) {
     const col = index % colCount;
     const level = coverage[index];
     const energy = glow[index];
-    context.fillStyle = !level ? mix(DIM, HOT, energy) : isLogo[index] ? mix(LOGO, INK, energy) : mix(INK, HOT, energy);
+    const { ink, dim, hot, logo } = palette;
+    // Logo dots rest in SITCON green and spark to ink; lettering dots rest in ink and spark green.
+    context.fillStyle = !level ? mix(dim, hot, energy) : isLogo[index] ? mix(logo, ink, energy) : mix(ink, hot, energy);
     context.globalAlpha = level ? 1 : 0.4 + energy * 0.6;
     context.beginPath();
     context.arc(originX * ratio + (col + 0.5) * size, ((index - col) / colCount + 0.5) * size, radius(index) * size, 0, Math.PI * 2);
@@ -190,6 +200,7 @@ export function mountBoard(board) {
   }
 
   function resize() {
+    palette = currentPalette();
     if (!canvas.clientWidth || !canvas.clientHeight) {
       return;
     }
@@ -258,6 +269,9 @@ export function mountBoard(board) {
     lettering = sampleLettering();
     resize();
     new ResizeObserver(resize).observe(canvas);
+    // Repaint in the new colours when the theme switch (or the OS setting) changes the theme.
+    new MutationObserver(resize).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', resize);
     document.addEventListener('visibilitychange', run);
     new IntersectionObserver((entries) => {
       visible = entries.at(-1).isIntersecting;
