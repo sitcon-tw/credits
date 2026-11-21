@@ -205,7 +205,7 @@ test('buildSiteData aggregates all appearances into people by profile reference'
   ]);
 });
 
-test('site build publishes homepage metadata, a homepage-only sitemap, and the sharing image', async (t) => {
+test('site build publishes the homepage introduction, metadata, homepage-only sitemap, and sharing image', async (t) => {
   const outputDir = await mkdtemp(path.join(tmpdir(), 'sitcon-credits-site-'));
   t.after(() => rm(outputDir, { recursive: true, force: true }));
 
@@ -219,6 +219,7 @@ test('site build publishes homepage metadata, a homepage-only sitemap, and the s
   const html = await readFile(path.join(outputDir, 'index.html'), 'utf8');
   const sitemap = await readFile(path.join(outputDir, 'sitemap.xml'), 'utf8');
   const canonical = 'https://sitcon.org/credits/';
+  assert.match(html, /id="pageLede"[^>]*>[^<]*年會[^<]*Camp[^<]*工作人員與講者紀錄/);
   assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]+)">/g)].map((match) => match[1]), [canonical]);
   assert.deepEqual([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]), [canonical]);
   assert.equal(html.match(/<meta property="og:url" content="([^"]+)">/)[1], canonical);

@@ -846,12 +846,15 @@ label .select-value {
 
 .person-note {
   max-width: 100%;
-  overflow: hidden;
   color: var(--ink-muted);
   font: 400 14px/1.35 var(--font-mono);
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.person-note,
+.list-summary {
+  word-break: keep-all;
+  text-wrap: balance;
 }
 
 /* ── List: rows of a file panel ───────────────────────────────────────── */
@@ -898,8 +901,7 @@ label .select-value {
 }
 
 .list-main strong,
-.list-main span,
-.list-summary {
+.list-main span {
   display: block;
   min-width: 0;
   overflow: hidden;
